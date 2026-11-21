@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Reputation radar",
+    "description": "Finds posts and comments that mention you across the web every day, and uses your DSH model to flag the complaints."
+  }
+}

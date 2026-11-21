@@ -1,0 +1,10 @@
+# 安装后左侧栏出现「创作台」。
+# dataDir：插件自己放临时文件的地方。workbenchDir：小易工作台所在的文件夹（里面有 server.mjs）。
+# port：插件在后台起的那个工作台用哪个端口，别和你自己开着的工作台（默认 5288）撞上。
+- insert:
+    - id: creator-studio
+      name: '@local/creator-studio'
+      config:
+        dataDir: !!js dshHomePath('creator-studio')
+        workbenchDir: /改成你的/小易工作台文件夹
+        port: 5295

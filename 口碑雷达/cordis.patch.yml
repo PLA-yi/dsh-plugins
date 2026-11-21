@@ -1,0 +1,6 @@
+# 安装后左侧栏出现「口碑雷达」。dataDir 是这个插件存数据的文件夹（默认在 DSH 自己的目录下）。
+- insert:
+    - id: reputation-radar
+      name: '@local/reputation-radar'
+      config:
+        dataDir: !!js dshHomePath('reputation-radar')
