@@ -1,0 +1,9 @@
+{
+  "id": "doocs-simple",
+  "name": "简洁",
+  "desc": "去掉大部分装饰的经典样式",
+  "source": "doocs/md",
+  "license": "WTFPL",
+  "group": "doocs/md",
+  "accent": "#0f4c81"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "doocs-grace",
+  "name": "优雅",
+  "desc": "圆角、阴影更柔和的经典样式",
+  "source": "doocs/md",
+  "license": "WTFPL",
+  "group": "doocs/md",
+  "accent": "#92617e"
+}

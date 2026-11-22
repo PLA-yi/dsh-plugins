@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-wechatFormat",
+  "name": "WeChat-Format",
+  "desc": "经典的公众号排版风格",
+  "author": "画手",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#ff3502"
+}

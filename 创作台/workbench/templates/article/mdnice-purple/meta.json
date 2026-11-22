@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-purple",
+  "name": "姹紫",
+  "desc": "紫色点缀，偏文艺",
+  "author": "djmaxwow",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#773098"
+}

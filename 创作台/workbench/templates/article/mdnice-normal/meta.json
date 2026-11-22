@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-normal",
+  "name": "默认",
+  "desc": "墨滴默认样式，清爽中性，什么内容都压得住",
+  "author": "zhning12",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#3f3f3f"
+}

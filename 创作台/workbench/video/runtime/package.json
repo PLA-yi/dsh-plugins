@@ -1,0 +1,13 @@
+{
+  "name": "workbench-video-runtime",
+  "private": true,
+  "description": "视频板块共用的依赖：HyperFrames（把网页渲染成视频）、ffmpeg / ffprobe，以及 Python 环境里的 cmake（编译 whisper 用）和 yt-dlp（按链接下载视频）。各个视频项目都用这一份",
+  "dependencies": {
+    "@ffprobe-installer/ffprobe": "^2.1.2",
+    "ffmpeg-static": "^5.3.0",
+    "hyperframes": "0.9.37"
+  },
+  "scripts": {
+    "postinstall": "(python3.12 -m venv py || python3 -m venv py) && py/bin/pip install -q cmake yt-dlp || echo \"cmake / yt-dlp 没装上：口播转字幕和按链接下载视频会用不了，其他不受影响\""
+  }
+}

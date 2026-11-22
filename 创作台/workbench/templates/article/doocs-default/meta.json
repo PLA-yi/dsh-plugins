@@ -1,0 +1,9 @@
+{
+  "id": "doocs-default",
+  "name": "经典",
+  "desc": "居中色块标题，doocs/md 默认样式",
+  "source": "doocs/md",
+  "license": "WTFPL",
+  "group": "doocs/md",
+  "accent": "#0f4c81"
+}

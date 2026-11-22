@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-blueMountain",
+  "name": "前端之巅同款",
+  "desc": "蓝色细线标题，规整的技术号风格",
+  "author": "HeyRain",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#3c70c6"
+}

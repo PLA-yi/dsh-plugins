@@ -978,7 +978,7 @@ select.$-input{cursor:pointer}
       const { busy, error, run } = useAction()
       const save = () => run(async () => {
         await api('saveSettings', { targets: [{ name, keywords: splitWords(keywords) }] })
-        toast('记下了')
+        toast('记下了，先查一次')
         onDone()
       })
       return h(Page, { title: '先告诉我要盯谁', sub: '一个品牌、一个账号或一个人都行。之后每天会去微博、B 站、知乎、小红书、抖音、公众号和新闻里找提到它的内容，看看有没有人在骂。' },
@@ -1068,19 +1068,20 @@ select.$-input{cursor:pointer}
 
       if (ov.error && !d) return h(Page, { title: '今天' }, h(ErrorBox, { error: ov.error, onRetry: ov.reload }))
       if (!d) return h(Loading)
-      if (!d.hasTargets) return h(Onboarding, { onDone: ov.reload })
+      // 填完要盯谁就直接查第一次，不用再找「立即检查」
+      if (!d.hasTargets) return h(Onboarding, { onDone: () => { ov.reload(); start() } })
       const s = d.stats
       const running = Boolean(prog?.running)
       const need = d.platforms.filter(p => p.on && ['login', 'waiting', 'expired', 'captcha'].includes(p.status) && p.paid?.status !== 'paid')
       const trend = { more: '比前几天多', less: '比前几天少', same: '和前几天差不多', none: '' }[s.trend]
-      const headline = s.neg ? `今天有 ${s.neg} 条在骂你` : s.total ? '今天没看到有人骂你' : d.lastRun ? '今天还没发现提到你的内容' : '还没检查过'
+      const headline = s.neg ? `今天有 ${s.neg} 条在骂你` : s.total ? '今天没看到有人骂你' : d.lastRun ? '今天还没发现提到你的内容' : running ? '正在查第一次' : '还没检查过'
       return h(Fragment, null,
         h(Page, { title: '今天', sub: `${d.today} · 盯着：${d.targets.join('、')}`, actions: h(Btn, { kind: 'primary', icon: 'refresh', busy: busy || running, onClick: start }, running ? '正在检查' : '立即检查') },
           h(Card, null,
             h('p', { className: cls('hero', s.neg ? 'hero-neg' : s.total ? 'hero-ok' : null) }, headline),
             h('p', { className: cls('muted') }, s.total
               ? `今天新发现 ${s.total} 条提到你的内容，确实在说你的 ${s.related} 条，其中夸你的 ${s.pos} 条${s.neg && trend ? `；骂的${trend}` : ''}。`
-              : d.lastRun ? `上次检查 ${fmtTime(d.lastRun.endedAt ?? d.lastRun.startedAt)}。` : `点右上角「立即检查」先看一次；以后每天 ${d.auto.time} 会自动检查（DSH 开着就行）。`),
+              : d.lastRun ? `上次检查 ${fmtTime(d.lastRun.endedAt ?? d.lastRun.startedAt)}。` : running ? `第一次要几分钟，查完这里会出结果；以后每天 ${d.auto.time} 会自动检查（DSH 开着就行）。` : `点右上角「立即检查」先看一次；以后每天 ${d.auto.time} 会自动检查（DSH 开着就行）。`),
             s.unjudged ? h(Alert, { tone: 'warn' }, `还有 ${s.unjudged} 条模型没判断成，下次检查会再试。`) : null,
             need.length ? h(Alert, { tone: 'warn', action: h(Btn, { sm: true, onClick: () => route.set('settings') }, '去设置') }, `${need.map(p => p.name).join('、')}${need.length > 1 ? '这几个平台' : ''}还没连上（要登录或被验证码挡住），这次没搜到它们。`) : null),
           running ? h(ProgressCard, { p: prog }) : null,

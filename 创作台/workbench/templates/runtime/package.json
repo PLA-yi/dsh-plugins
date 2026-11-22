@@ -1,0 +1,1 @@
+{"name":"workbench-article-runtime","private":true,"type":"module","description":"新建文章共用的构建依赖（marked、juice），各篇文章的 node_modules 链到这里","dependencies":{"juice":"^11.0.0","marked":"^14.1.4"}}

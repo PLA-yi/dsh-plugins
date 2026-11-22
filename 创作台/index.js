@@ -16,8 +16,9 @@
  */
 import { spawn } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { createReadStream, existsSync } from 'node:fs'
+import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdir, rm, stat, appendFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { StudioGateway } from './host/gateway.js'
 import { htmlText } from './host/html-text.js'
@@ -48,6 +49,25 @@ function readable(text) {
 }
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 
+// ------------------------------------------------------------------ 自带的工作台：作品放哪
+
+/**
+ * 自带的工作台第一次用时，告诉它作品放在哪个文件夹（工作台的 config.json 的 roots）。
+ * 作品默认放在「文稿/创作台」，在访达里能直接找到；cordis.patch.yml 写了 projectsDir 就用那个。
+ */
+function prepareBundled(dir, projectsDir, log) {
+  try {
+    mkdirSync(projectsDir, { recursive: true })
+    const file = join(dir, 'config.json')
+    let conf = {}
+    try { conf = JSON.parse(readFileSync(file, 'utf8')) } catch {}
+    if (conf.roots?.length === 1 && conf.roots[0] === projectsDir) return
+    writeFileSync(file, JSON.stringify({ ...conf, roots: [projectsDir] }, null, 2) + '\n')
+  } catch (e) {
+    log(`准备作品文件夹失败：${e.message}`)
+  }
+}
+
 // ------------------------------------------------------------------ 工作台服务：起、等、挂了再起
 
 function makeRunner({ dir, port, token, gateway, log }) {
@@ -62,7 +82,7 @@ function makeRunner({ dir, port, token, gateway, log }) {
   }
 
   async function start() {
-    if (!existsSync(join(dir, 'server.mjs'))) throw new UserError(`没找到工作台：${dir}。在 cordis.patch.yml 里把 workbenchDir 改成工作台所在的文件夹。`)
+    if (!existsSync(join(dir, 'server.mjs'))) throw new UserError(`没找到工作台：${dir}。插件文件夹里应该有 workbench/；如果在 cordis.patch.yml 里写了 workbenchDir，检查一下路径。`)
     // 端口上已经有程序：多半是 DSH 刚被强行关掉、上一个工作台还没退（它两秒内会自己退），等一会儿
     for (let i = 0; i < 12 && await alive(); i++) await sleep(500)
     if (await alive()) throw new UserError(`端口 ${port} 已经被别的程序占用了。关掉它，或在 cordis.patch.yml 里换一个 port。`)
@@ -306,15 +326,18 @@ async function respond(request, handlers, log) {
 /**
  * 插件入口。
  * @param {import('@deepseek-ai/cordis').Context} ctx
- * @param {{ dataDir: string, workbenchDir: string, port?: number }} config - 来自 cordis.patch.yml。
+ * @param {{ dataDir: string, workbenchDir?: string, projectsDir?: string, port?: number }} config - 来自 cordis.patch.yml。
  */
 export function apply(ctx, config) {
   if (!config?.dataDir) throw new Error(`${name}：cordis.patch.yml 里要写 dataDir`)
-  if (!config?.workbenchDir) throw new Error(`${name}：cordis.patch.yml 里要写 workbenchDir（小易工作台所在的文件夹）`)
   const log = text => ctx.logger?.warn?.(`${name}: ${text}`)
+  // 默认用插件自带的工作台（workbench/）；写了 workbenchDir 就用那边的（比如自己另外装的小易工作台）
+  const bundled = join(import.meta.dirname, 'workbench')
+  const dir = config.workbenchDir || bundled
+  if (dir === bundled) prepareBundled(bundled, config.projectsDir || join(homedir(), 'Documents', '创作台'), log)
   const token = randomBytes(16).toString('hex')
   const gateway = makeGateway(ctx)
-  const runner = makeRunner({ dir: config.workbenchDir, port: Number(config.port) || 5295, token, gateway, log })
+  const runner = makeRunner({ dir, port: Number(config.port) || 5295, token, gateway, log })
   const handlers = makeHandlers({ runner, token, dataDir: config.dataDir })
   // DSH 一起来就在后台把工作台起好，打开页面时不用等
   runner.ensure().catch(e => log(e.message))

@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-ink",
+  "name": "墨黑",
+  "desc": "水墨黑灰，克制沉稳",
+  "author": "Mayandev",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#3f3f3f"
+}

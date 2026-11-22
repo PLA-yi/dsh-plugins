@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-green",
+  "name": "绿意",
+  "desc": "绿色系，自然温和",
+  "author": "夜尽天明",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#35b378"
+}

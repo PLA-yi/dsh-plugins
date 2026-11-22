@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-red",
+  "name": "红绯",
+  "desc": "红色强调，适合观点鲜明的文章",
+  "author": "HeyRain",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#f83929"
+}

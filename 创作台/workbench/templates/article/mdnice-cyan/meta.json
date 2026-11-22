@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-cyan",
+  "name": "嫩青",
+  "desc": "青绿色，干净清新",
+  "author": "画手",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#47c1a8"
+}

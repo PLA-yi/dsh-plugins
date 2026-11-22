@@ -1,0 +1,23 @@
+# 依赖（含 templates/sample 里指向 runtime 的软链接）
+/node_modules
+templates/sample/node_modules
+config.json
+
+# 本机数据：登录令牌、AI 设置、X 账号、记忆、素材、浏览器登录态
+data/
+
+# 示例文章的渲染输出（含无头 Chrome 的配置目录）
+templates/sample/out/
+
+# 各项目的工作台状态
+.workbench/
+.workbench.json
+
+.DS_Store
+*.log
+.env
+.env.*
+
+# 视频板块的依赖：链出来的 ffmpeg / ffprobe / cmake，和装 cmake 用的 Python 环境
+video/runtime/bin/
+video/runtime/py/

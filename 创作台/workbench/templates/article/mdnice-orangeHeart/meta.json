@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-orangeHeart",
+  "name": "橙心",
+  "desc": "暖橙色标题块，亲切有活力",
+  "author": "zhning12",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#ef7060"
+}

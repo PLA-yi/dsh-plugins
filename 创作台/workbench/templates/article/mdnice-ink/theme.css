@@ -1,0 +1,68 @@
+/* 墨黑：水墨黑灰，克制沉稳
+   来源：mdnice/markdown-nice v1.4.0（GPL-3.0），由 tools/templates.mjs 转成工作台模板：去掉了公众号不支持的写法，补上了刊头、导语、目录、章节编号、图注等元素的样式。
+   构建时全部转成行内样式；主色 #3f3f3f，正文 #3f3f3f。 */
+.article{color:#3f3f3f;font-size:16px;line-height:1.8;letter-spacing:.5px;text-align:left;word-break:break-word}
+.article .mast{display:flex;justify-content:space-between;align-items:center;margin:0 0 18px;padding:0 0 8px;border-bottom:1px solid #c5c5c5}
+.article .mast-l{margin:0;font-size:13px;font-weight:700;color:#3f3f3f;line-height:1.3;text-indent:0;letter-spacing:1px}
+.article .mast-r{margin:0;font-size:12px;color:#8c8c8c;line-height:1.3;text-align:right;text-indent:0}
+.article .kicker{display:inline-block;margin:0 0 10px;padding:2px 10px;border-radius:999px;background:#f0f0f0;color:#3f3f3f;font-size:12px;font-weight:600;letter-spacing:1px;text-indent:0}
+.article .h1b{color:#3f3f3f}
+.article .deck{margin:0 0 24px;padding:12px 16px;background:#f0f0f0;border-left:3px solid #3f3f3f;color:#5c5c5c;font-size:15px;line-height:1.8;text-indent:0;border-radius:0 6px 6px 0}
+.article .dc{font-size:inherit;font-weight:inherit;color:inherit}
+.article .toc{margin:24px 0 10px;padding:14px 16px 6px;background:#f0f0f0;border-radius:8px}
+.article .toc-t{margin:0 0 8px;font-size:13px;font-weight:700;color:#3f3f3f;text-indent:0;letter-spacing:1px}
+.article .toc-i{margin:0 0 8px;font-size:14.5px;line-height:1.6;color:#5c5c5c;text-indent:0}
+.article .toc-i b{color:#3f3f3f;margin-right:6px;font-weight:700}
+.article h2 .h2row{display:block;margin-bottom:6px}
+.article h2 .no{display:inline-block;padding:1px 8px;border-radius:3px;background:#3f3f3f;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:1px;line-height:1.6}
+.article h2 .en{display:none}
+.article h2 .h2q{display:block;font-size:15px;font-weight:500;color:#8c8c8c;margin-top:4px;letter-spacing:0}
+.article .qm{display:none}
+.article .tbl{margin:22px 0 8px;overflow-x:auto}
+.article .pic,.article .dgm,.article .pcd{margin:22px 0 0}
+.article .cov{margin:36px 0 18px}
+.article .cov0{margin:0 0 18px}
+.article .pic img,.article .cov img,.article .dgm img,.article .pcd img{display:block;width:100%;max-width:100%;margin:0;border-radius:6px}
+.article .cap{margin:8px 0 26px;font-size:12px;line-height:1.7;color:#8c8c8c;text-align:center;text-indent:0;letter-spacing:0}
+.article .cap b{color:#3f3f3f;margin-right:6px;font-weight:600}
+.article .orn{text-align:center;color:#3f3f3f;letter-spacing:10px;font-size:14px;margin:30px 0;text-indent:0}
+.article .sources{margin-top:36px;padding:12px 14px 4px;background:#f6f6f6;border-radius:6px;font-size:11.5px;line-height:1.8;color:#8c8c8c}
+.article .sources p{margin:0 0 6px;font-size:11.5px;line-height:1.8;color:#8c8c8c;text-indent:0;letter-spacing:0}
+.article .sources b{color:#555555;font-size:12px}
+.article .sources a{color:#8c8c8c}
+.article .sign{margin:28px 0 0;text-align:center;font-size:12px;color:#8c8c8c;text-indent:0}
+.article .sign b{color:#3f3f3f;font-size:16px}
+/* ---- 主题 ---- */
+.article{font-size:16px;color:black;padding:10px;line-height:1.6;word-spacing:0px;letter-spacing:0px;word-break:break-word;word-wrap:break-word;text-align:left;font-family:Optima-Regular, Optima, PingFangSC-light, PingFangTC-light, 'PingFang SC', Cambria, Cochin, Georgia, Times, 'Times New Roman', serif}
+.article p{font-size:16px;padding-top:8px;padding-bottom:8px;margin:0;line-height:26px;color:black}
+.article h1{margin-top:40px;margin-bottom:20px;font-weight:bold;color:black}
+.article h1{font-size:28px}
+.article h2{font-size:24px}
+.article h3{font-size:20px}
+.article h4{font-size:18px}
+.article h5{font-size:16px}
+.article h6{font-size:16px}
+.article ul{margin-top:8px;margin-bottom:8px;padding-left:25px;color:black}
+.article ul{list-style-type:disc}
+.article ul ul{list-style-type:square}
+.article ol{list-style-type:decimal}
+.article li{margin-top:5px;margin-bottom:5px;line-height:26px;text-align:left;color:rgb(1,1,1);font-weight:500}
+.article blockquote{display:block;font-size:0.9em;overflow:auto;overflow-scrolling:touch;border-left:3px solid rgba(0, 0, 0, 0.4);background:rgba(0, 0, 0, 0.05);color:#6a737d;padding-top:10px;padding-bottom:10px;padding-left:20px;padding-right:10px;margin-bottom:20px;margin-top:20px}
+.article blockquote p{margin:0px;color:black;line-height:26px}
+.article a{text-decoration:none;color:#1e6bb8;word-wrap:break-word;font-weight:bold;border-bottom:1px solid #1e6bb8}
+.article strong{font-weight:bold;color:black}
+.article em{font-style:italic;color:black}
+.article strong em{font-weight:bold;color:black}
+.article del{font-style:italic;color:black}
+.article hr{height:1px;margin:0;margin-top:10px;margin-bottom:10px;border:none;border-top:1px solid black}
+.article img{display:block;margin:0 auto;width:100%}
+.article .cap{margin-top:5px;text-align:center;color:#888;font-size:14px}
+.article table{display:table;text-align:left}
+.article tbody{border:0}
+.article table tr{border:0;border-top:1px solid #ccc;background-color:white}
+.article table tr th{font-size:16px;border:1px solid #ccc;padding:5px 10px;text-align:left}
+.article table tr th{font-weight:bold;background-color:#f0f0f0}
+.article p{font-size:17px;word-spacing:3px;letter-spacing:1px}
+.article h2 .h2t{background-color:#5c5c5c;color:white;padding:5px 15px;border-radius:1px}
+.article hr{border-top:1px dashed #dddddd}
+.article img{border-radius:5px}

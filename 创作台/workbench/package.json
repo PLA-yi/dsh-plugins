@@ -1,0 +1,14 @@
+{
+  "name": "xiaoyi-workbench",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "xy": "cli.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0"
+  },
+  "devDependencies": {
+    "lucide-static": "^0.460.0"
+  }
+}

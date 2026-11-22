@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-shanchui",
+  "name": "山吹",
+  "desc": "日式金黄色调，复古",
+  "author": "ElyhG",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#dda52d"
+}

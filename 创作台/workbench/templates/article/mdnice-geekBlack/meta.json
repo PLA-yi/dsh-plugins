@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-geekBlack",
+  "name": "极客黑",
+  "desc": "深色标题配橙色点缀，适合技术向",
+  "author": "hyper-xx",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#ef7060"
+}

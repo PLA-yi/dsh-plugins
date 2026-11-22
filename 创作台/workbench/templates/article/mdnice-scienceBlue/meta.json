@@ -1,0 +1,10 @@
+{
+  "id": "mdnice-scienceBlue",
+  "name": "科技蓝",
+  "desc": "蓝色标题条，偏技术和产品分析",
+  "author": "夜尽天明",
+  "source": "mdnice/markdown-nice v1.4.0",
+  "license": "GPL-3.0",
+  "group": "墨滴 mdnice",
+  "accent": "#0e88eb"
+}
