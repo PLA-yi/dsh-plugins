@@ -346,3 +346,225 @@ export function makeBudget(spend, { monthlyCap, unitPrice }, now = () => new Dat
     used: () => ({ month: month(), ...cur(), cap: Number(monthlyCap) }),
   }
 }
+
+// ------------------------------------------------------------------ 看板统计（「今天」页的图表、「全部评论」页的小图）
+
+const num = v => Number(v) || 0
+/** 一条的互动量：点赞 + 评论 + 转发（播放量不算，量级差太多）。 */
+export const engagementOf = it => num(it.stats?.likes) + num(it.stats?.comments) + num(it.stats?.shares)
+const SENT_KEYS = ['neg', 'neu', 'pos', 'unknown', 'unrelated']
+const tally = list => {
+  const out = Object.fromEntries(SENT_KEYS.map(k => [k, 0]))
+  for (const it of list) out[sentimentOf(it)] += 1
+  return out
+}
+const groupByDate = items => {
+  const m = new Map()
+  for (const it of items) {
+    if (!m.has(it.foundDate)) m.set(it.foundDate, [])
+    m.get(it.foundDate).push(it)
+  }
+  return m
+}
+/** 从 to 往前数 days 天，每天一格：各情绪多少条、严重的几条、这天有没有检查过（有数据才算检查过）。 */
+function daySeries(byDate, to, days) {
+  const out = []
+  for (let n = days - 1; n >= 0; n -= 1) {
+    const date = daysBefore(to, n)
+    const list = byDate.get(date) ?? []
+    const c = tally(list)
+    out.push({ date, checked: byDate.has(date), ...c, related: c.neg + c.neu + c.pos, severe: list.filter(it => severityOf(it) >= 3).length })
+  }
+  return out
+}
+
+// 高频词：不引分词库，用「两到六个字的片段出现在几条里」来数，再把被长词包住的短片段去掉。
+const STOP_EDGE_START = /^[的了吗呢吧啊呀哦嘛么着过是在和与及或也都就还又把被给让我你他她它这那个]/
+const STOP_EDGE_END = /[的了吗呢吧啊呀哦嘛么着过是在和与及或也都就还又把被给让我你他她它这那个]$/
+const STOP_WORDS = new Set(['什么', '怎么', '这个', '那个', '就是', '真的', '一个', '没有', '不是', '可以', '自己', '还是', '因为', '但是', '已经', '知道', '现在', '觉得', '这么', '那么', '如果', '时候', '这样', '一下', '还有', '然后', '所以', '而且', '不过', '只是', '起来', '出来', '东西', '大家', '视频', '评论', '回复', '转发', '网页链接', '全文', '展开', '收起', '一样', '不会', '不能', '不要', '为什么', '有没有', '是不是', '有点', '一点', '感觉', '可能', '应该', '其实', '直接', '还要', '根本', '还没', '一直', '非常', '特别', '简直', '真是', '每次', '一次', '两次', '三次', '一个月', '一个多月'])
+
+/**
+ * 一批内容里反复出现的词（给词云用）。同一条里出现多次只算一次；模型写的理由里出现的多算一次（理由更像「在骂什么」）。
+ * @param {object[]} list 内容
+ * @param {string[]} terms 监控对象的名称和别名（这些词每条都有，不算）
+ * @returns {{ word: string, value: number }[]}
+ */
+export function hotWords(list, terms = [], top = 30) {
+  const score = new Map()
+  const docs = new Map() // 词 → 出现在第几条（用来判断两个片段是不是总一起出现）
+  const gramsOf = text => {
+    const out = new Set()
+    for (const run of String(text ?? '').match(/[\u4e00-\u9fff]+/g) ?? []) {
+      for (let n = 2; n <= 6; n += 1) for (let i = 0; i + n <= run.length; i += 1) out.add(run.slice(i, i + n))
+    }
+    for (const w of String(text ?? '').match(/[A-Za-z][A-Za-z0-9-]{2,}/g) ?? []) out.add(w)
+    return out
+  }
+  list.forEach((it, idx) => {
+    for (const w of gramsOf(`${it.title ?? ''} ${String(it.text ?? '').slice(0, 300)} ${it.judge?.reason ?? ''}`)) {
+      score.set(w, (score.get(w) ?? 0) + 1)
+      if (!docs.has(w)) docs.set(w, [])
+      docs.get(w).push(idx)
+    }
+    for (const w of gramsOf(it.judge?.reason)) score.set(w, (score.get(w) ?? 0) + 1)
+  })
+  const banned = terms.map(t => fold(t)).filter(Boolean)
+  const keep = [...score.entries()].filter(([w, n]) => {
+    if (n < 2) return false
+    const f = fold(w)
+    if (STOP_WORDS.has(w) || STOP_EDGE_START.test(w) || STOP_EDGE_END.test(w)) return false
+    if (banned.some(t => t.includes(f) || f.includes(t))) return false
+    return true
+  })
+  // 长的包住短的、而且短的几乎只在长的里出现：留长的
+  const kept = new Map(keep)
+  const drop = new Set()
+  for (const [long, n] of keep) {
+    if (!/^[\u4e00-\u9fff]+$/.test(long)) continue
+    for (let len = 2; len < long.length; len += 1) {
+      for (let i = 0; i + len <= long.length; i += 1) {
+        const s = long.slice(i, i + len)
+        const m = kept.get(s)
+        if (m !== undefined && m <= n * 1.25) drop.add(s)
+      }
+    }
+  }
+  // 两个片段总在同几条里一起出现、首尾接得上（「客服根本不理」「服根本不理人」）：拼成一个
+  const rest = keep.filter(([w]) => !drop.has(w)).sort((a, b) => b[1] - a[1]).slice(0, 300)
+  const groups = new Map()
+  for (const [w, n] of rest) {
+    const sig = `${n}|${docs.get(w)?.join(',')}`
+    if (!groups.has(sig)) groups.set(sig, [])
+    groups.get(sig).push(w)
+  }
+  const out = []
+  for (const [sig, ws] of groups) {
+    const n = Number(sig.split('|')[0])
+    const pool = [...ws]
+    while (pool.length) {
+      let cur = pool.shift()
+      for (let changed = true; changed;) {
+        changed = false
+        for (let i = 0; i < pool.length; i += 1) {
+          const b = pool[i]
+          let joined = null
+          if (cur.includes(b)) joined = cur
+          else if (b.includes(cur)) joined = b
+          for (let k = Math.min(cur.length, b.length) - 1; k >= 1 && !joined; k -= 1) {
+            if (cur.endsWith(b.slice(0, k))) joined = cur + b.slice(k)
+            else if (b.endsWith(cur.slice(0, k))) joined = b + cur.slice(k)
+          }
+          if (joined) { cur = joined; pool.splice(i, 1); changed = true; break }
+        }
+      }
+      if (cur.length <= 10) out.push([cur, n])
+    }
+  }
+  // 拼完以后再去一次：被别的词包住、次数也差不多的，不要
+  const final = out.filter(([w, n]) => !out.some(([o, m]) => o !== w && o.length > w.length && o.includes(w) && n <= m * 1.25))
+  return final
+    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length || a[0].localeCompare(b[0]))
+    .slice(0, top).map(([word, value]) => ({ word, value }))
+}
+
+/**
+ * 「今天」页看板：今天的几个大数字（和前 7 天比）、近 days 天每天的情绪、各平台、负面在骂什么、严重程度、高频词。
+ * @param {object[]} items 全部内容
+ * @param {string} date 今天
+ * @param {{ days?: number, terms?: string[] }} opts days 只能是 7 到 30；terms 是监控对象的名称和别名（不进词云）
+ */
+export function boardStats(items, date, { days = 14, terms = [] } = {}) {
+  const span = Math.min(30, Math.max(7, Math.round(Number(days) || 14)))
+  const byDate = groupByDate(items)
+  const from = daysBefore(date, span - 1)
+  const inRange = items.filter(it => it.foundDate >= from && it.foundDate <= date)
+  const negs = inRange.filter(isNeg)
+  const count = (list, fn) => {
+    const m = new Map()
+    for (const it of list) { const k = fn(it) || '其他'; m.set(k, (m.get(k) ?? 0) + 1) }
+    return m
+  }
+  const aspectCount = count(negs, it => it.judge?.aspect)
+  const aspectSevere = count(negs.filter(it => severityOf(it) >= 3), it => it.judge?.aspect)
+  const platforms = PLATFORMS.map(p => {
+    const c = tally(inRange.filter(it => it.platform === p.key))
+    return { key: p.key, name: p.name, related: c.neg + c.neu + c.pos, neg: c.neg, neu: c.neu, pos: c.pos }
+  })
+  // 今天的大数字，和前 7 天里检查过的日子比（没检查过的日子不算 0）
+  const spark = daySeries(byDate, date, 14)
+  const todayRow = spark.at(-1)
+  const todayNeg = (byDate.get(date) ?? []).filter(isNeg)
+  const before = spark.slice(-8, -1).filter(s => s.checked)
+  const avg = fn => (before.length ? Math.round((before.reduce((a, s) => a + fn(s), 0) / before.length) * 10) / 10 : null)
+  const prevRelated = before.reduce((a, s) => a + s.related, 0)
+  const prevEng = before.length ? Math.round(before.reduce((a, s) => a + (byDate.get(s.date) ?? []).filter(isNeg).reduce((x, it) => x + engagementOf(it), 0), 0) / before.length) : null
+  const share = (neg, related) => (related ? Math.round((neg / related) * 1000) / 10 : null)
+  return {
+    date,
+    days: span,
+    from,
+    kpi: {
+      mentions: todayRow.related,
+      neg: todayRow.neg,
+      pos: todayRow.pos,
+      neu: todayRow.neu,
+      unknown: todayRow.unknown,
+      severe: todayRow.severe,
+      negShare: share(todayRow.neg, todayRow.related),
+      engagement: todayNeg.reduce((a, it) => a + engagementOf(it), 0),
+      prev: {
+        days: before.length,
+        mentions: avg(s => s.related),
+        neg: avg(s => s.neg),
+        negShare: before.length ? share(before.reduce((a, s) => a + s.neg, 0), prevRelated) : null,
+        engagement: prevEng,
+      },
+      spark: spark.map(s => ({ date: s.date, checked: s.checked, mentions: s.related, neg: s.neg, negShare: share(s.neg, s.related) })),
+    },
+    series: daySeries(byDate, date, span),
+    totals: { ...tally(inRange), related: inRange.filter(isRelated).length, severe: negs.filter(it => severityOf(it) >= 3).length },
+    platforms,
+    aspects: [...aspectCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([label, value]) => ({ label, value, severe: aspectSevere.get(label) ?? 0 })),
+    severity: [1, 2, 3].map(level => ({ level, value: negs.filter(it => severityOf(it) === level).length })),
+    keywords: hotWords(negs, terms),
+  }
+}
+
+/**
+ * 「全部评论」的筛选。skip 写 'platform' 或 'sentiment' 时不按那一项筛（算筛选旁边的计数时用）。
+ * @param {{ platform?: string, sentiment?: string, from?: string, kw?: string, aspect?: string }} f from 是最早的发现日期，空字符串表示不限；aspect 是「骂的哪方面」（看板上点了某个方面时用）
+ */
+export function filterItems(items, { platform = 'all', sentiment = 'related', from = '', kw = '', aspect = '' } = {}, skip = '') {
+  const q = String(kw ?? '').trim().toLowerCase()
+  return items.filter(it => {
+    if (skip !== 'platform' && platform !== 'all' && it.platform !== platform) return false
+    if (from && it.foundDate < from) return false
+    if (aspect && (it.judge?.aspect || '其他') !== aspect) return false
+    if (skip !== 'sentiment') {
+      const s = sentimentOf(it)
+      if (sentiment === 'related' ? s === 'unrelated' : sentiment !== 'all' && s !== sentiment) return false
+    }
+    if (q && !`${it.title ?? ''} ${it.text ?? ''} ${it.author ?? ''} ${it.parentTitle ?? ''}`.toLowerCase().includes(q)) return false
+    return true
+  })
+}
+
+/**
+ * 「全部评论」上方的小图：按平台数（不管平台筛选）、按情绪数（不管情绪筛选）、每天多少条（按全部筛选）。
+ * 日期不限时，每天的图只画最近 30 天。
+ */
+export function listFacets(items, f, date) {
+  const byPlat = filterItems(items, f, 'platform')
+  const bySent = filterItems(items, f, 'sentiment')
+  const all = filterItems(items, f)
+  const from = f.from || daysBefore(date, 29)
+  const spanDays = Math.max(1, Math.min(30, Math.round((new Date(`${date}T00:00:00`) - new Date(`${from}T00:00:00`)) / 864e5) + 1))
+  return {
+    platforms: PLATFORMS.map(p => {
+      const list = byPlat.filter(it => it.platform === p.key)
+      return { key: p.key, name: p.name, total: list.length, neg: list.filter(isNeg).length }
+    }),
+    sentiments: tally(bySent),
+    days: daySeries(groupByDate(all), date, spanDays).map(({ date: d, neg, neu, pos, unknown }) => ({ date: d, neg, neu, pos, unknown })),
+  }
+}

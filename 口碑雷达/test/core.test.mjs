@@ -1,7 +1,7 @@
 // 不碰网络的部分：去重、筛子、判断结果解析、日报统计、花钱上限、时间换算。跑法：npm test
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { dateOf, dayStats, daysBefore, dedupe, extractJson, fallbackSummary, itemKey, judgePrompt, makeBudget, parseJudgement, parseTime, screen, sentimentOf, termsOf } from '../host/core.js'
+import { boardStats, dateOf, dayStats, daysBefore, dedupe, extractJson, fallbackSummary, filterItems, hotWords, itemKey, judgePrompt, listFacets, makeBudget, parseJudgement, parseTime, screen, sentimentOf, termsOf } from '../host/core.js'
 
 test('去重：同一条从不同方式抓来只算一条', () => {
   const free = { platform: 'bilibili', kind: 'post', pid: '123', url: 'https://www.bilibili.com/video/BV1?vd_source=a', text: '甲' }
@@ -156,4 +156,73 @@ test('时间换算：各种写法', () => {
   assert.equal(parseTime('Mon, 16 Nov 2026 01:44:00 GMT'), '2026-11-16T01:44:00.000Z')
   assert.equal(parseTime('不知道'), null)
   assert.equal(dateOf(new Date(2026, 0, 5)), '2026-01-05')
+})
+
+test('看板：今天的大数字和前 7 天比、负面占比、互动量；没检查过的日子不拉低平均', () => {
+  const today = '2026-11-20'
+  const items = [
+    it(1, today, 'neg', { severity: 3, aspect: '售后', likes: 40 }),
+    it(2, today, 'neg', { severity: 1, aspect: '价格', likes: 10, platform: 'douyin' }),
+    it(3, today, 'pos'),
+    it(4, today, 'neu'),
+    it(5, today, 'unrelated'),
+    it(6, daysBefore(today, 1), 'neg', { aspect: '售后' }),
+    it(7, daysBefore(today, 1), 'neu'),
+    it(8, daysBefore(today, 3), 'neu'),
+  ]
+  const b = boardStats(items, today, { days: 7 })
+  assert.equal(b.days, 7)
+  assert.equal(b.series.length, 7)
+  assert.equal(b.kpi.mentions, 4) // 无关的不算
+  assert.equal(b.kpi.neg, 2)
+  assert.equal(b.kpi.negShare, 50)
+  assert.equal(b.kpi.engagement, 50) // 两条骂的点赞加起来
+  assert.equal(b.kpi.prev.days, 2) // 前 7 天只有两天检查过
+  assert.equal(b.kpi.prev.mentions, 1.5)
+  assert.equal(b.kpi.prev.neg, 0.5)
+  assert.equal(b.kpi.prev.negShare, 33.3) // 1 / 3
+  assert.equal(b.kpi.spark.length, 14)
+  assert.deepEqual(b.series.at(-1), { date: today, checked: true, neg: 2, neu: 1, pos: 1, unknown: 0, unrelated: 1, related: 4, severe: 1 })
+  assert.equal(b.series.at(-3).checked, false)
+  assert.deepEqual(b.aspects[0], { label: '售后', value: 2, severe: 1 })
+  assert.deepEqual(b.severity, [{ level: 1, value: 2 }, { level: 2, value: 0 }, { level: 3, value: 1 }])
+  assert.deepEqual(b.platforms.find(p => p.key === 'weibo'), { key: 'weibo', name: '微博', related: 6, neg: 2, neu: 3, pos: 1 })
+  assert.equal(b.totals.neg, 3)
+  assert.equal(boardStats(items, today, { days: 99 }).days, 30) // 最多 30 天
+  assert.equal(boardStats([], today).kpi.negShare, null) // 没提及时不算占比
+})
+
+test('高频词：数在几条里出现过，长词留下、监控对象自己的名字和虚词不算', () => {
+  const neg = (text, reason) => ({ text, judge: { status: 'done', related: true, sentiment: 'neg', severity: 1, reason } })
+  const words = hotWords([
+    neg('庞巴迪的售后太差了，客服根本不理人', '售后不处理'),
+    neg('售后太差，等了一个月配件', '售后拖延'),
+    neg('客服根本不理人，太贵了', '客服态度差'),
+    neg('Spyder 又漏油了', '漏油'),
+  ], ['庞巴迪', 'Spyder']).map(w => w.word)
+  assert.ok(words.includes('售后'))
+  assert.ok(words.includes('客服根本不理人')) // 两段接得上的拼成一个
+  assert.ok(words.includes('售后太差'))
+  assert.ok(words.includes('漏油')) // 只出现一次，但模型的理由里也有
+  assert.ok(!words.some(w => /庞巴迪|巴迪|Spyder/.test(w)))
+  assert.ok(!words.includes('后太差')) // 被「售后太差」包住
+  assert.ok(!words.includes('一个月')) // 只出现一次、理由里没有
+})
+
+test('全部评论的小图：平台计数不管平台筛选，情绪计数不管情绪筛选', () => {
+  const today = '2026-11-20'
+  const items = [
+    it(1, today, 'neg'), it(2, today, 'pos', { platform: 'douyin' }), it(3, today, 'neg', { platform: 'douyin' }),
+    it(4, daysBefore(today, 1), 'unrelated'), it(5, daysBefore(today, 40), 'neg'),
+  ]
+  const f = { platform: 'douyin', sentiment: 'neg', from: daysBefore(today, 6) }
+  assert.deepEqual(filterItems(items, f).map(x => x.id), [3])
+  assert.deepEqual(filterItems(items, { sentiment: 'neg', aspect: '其他' }).map(x => x.id), [1, 3, 5]) // 没写方面的算「其他」
+  assert.deepEqual(filterItems(items, { sentiment: 'neg', aspect: '价格' }), [])
+  const facets = listFacets(items, f, today)
+  assert.deepEqual(facets.platforms.filter(p => p.total).map(p => [p.key, p.total, p.neg]), [['weibo', 1, 1], ['douyin', 1, 1]])
+  assert.deepEqual(facets.sentiments, { neg: 1, neu: 0, pos: 1, unknown: 0, unrelated: 0 })
+  assert.equal(facets.days.length, 7)
+  assert.deepEqual(facets.days.at(-1), { date: today, neg: 1, neu: 0, pos: 0, unknown: 0 })
+  assert.equal(listFacets(items, { sentiment: 'all' }, today).days.length, 30) // 日期不限只画最近 30 天
 })

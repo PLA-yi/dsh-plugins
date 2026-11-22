@@ -1,4 +1,4 @@
-// 小易工作台前端：不依赖任何框架。路由用 #/…，数据都走 /api。
+// 创作台前端：不依赖任何框架。路由用 #/…，数据都走 /api。
 import { cover, themeOf } from './covers.js';
 import { mountVideo } from './video.js';
 import { mountBreakdown } from './breakdown.js';
@@ -243,7 +243,7 @@ function xPreviewHtml(p, r) {
   const u = f => fileUrl(p, f) + '?v=' + (r.t || Date.now()), byN = Object.fromEntries(r.images.map(i => [i.n, i]));
   const body = r.html.replace(/<p>【插图 (\d+)】<\/p>/g, (_, n) => { const im = byN[+n]; return im?.file ? `<figure><img src="${u(im.file)}" alt="" loading="lazy"></figure>` : `<div class="miss">插图 ${n}：${esc(im?.note || '没有图片')}</div>`; });
   return `<style>${X_CSS}</style><div class="xa">${r.cover ? `<img class="cover" src="${u(r.cover)}" alt="">` : '<div class="nocover">还没有 5:2 封面</div>'}<h1>${esc(r.title)}</h1>
-    <div class="by"><span class="av">易</span><div><b>AI 产品小易</b><span>${esc(todayStr())} · ${r.chars} 字 · ${r.images.length} 张图</span></div></div><div class="body">${body}</div></div>`;
+    <div class="by"><span class="av">易</span><div><b>${esc(S.profile?.name || '')}</b><span>${esc(todayStr())} · ${r.chars} 字 · ${r.images.length} 张图</span></div></div><div class="body">${body}</div></div>`;
 }
 // 图片复制成 PNG（浏览器剪贴板只认 PNG；JPG 先画成 PNG）
 async function copyImage(url) {
@@ -514,7 +514,7 @@ async function articleRead(el, p) {
     ${d.stale ? `<div class="stale">文章改过了，下面还是上次构建的样子。<button class="btn pri" data-run="build">${I('hammer')}重新构建</button></div>` : ''}
     ${!d.built ? `<div class="stale">还没构建过，下面是按 article.md 临时排的版，图表和封面要构建后才完整。<button class="btn pri" data-run="build">${I('hammer')}构建</button></div>` : ''}
     <div class="wxbg"><article class="wx w-${S.rw}">
-      ${S.rv === 'wechat' ? `<h1 class="wx-t">${esc(p.title)}</h1><div class="wx-m"><span class="wx-a">AI 产品小易</span><span>${esc(date)}</span></div>` : `<h1 class="wx-t x">${esc(p.title)}</h1>`}
+      ${S.rv === 'wechat' ? `<h1 class="wx-t">${esc(p.title)}</h1><div class="wx-m"><span class="wx-a">${esc(S.profile?.name || '')}</span><span>${esc(date)}</span></div>` : `<h1 class="wx-t x">${esc(p.title)}</h1>`}
       <div id="wxbody"></div>
     </article></div>`;
   const host = $('#wxbody'), root = host.attachShadow({ mode: 'open' });
@@ -994,7 +994,7 @@ const X_EDIT_CSS = `
   .xskin .article{padding:0 16px}
   .xskin .article p{margin:0 0 18px}
   .xskin .article h1{font-size:31px;line-height:1.25;font-weight:800;margin:0;letter-spacing:-.3px}
-  .xskin .blk:has(> h1)::after{content:"AI 产品小易 · 推特长文";display:block;font-size:14px;color:#536471;padding:10px 0 16px;margin-bottom:22px;border-bottom:1px solid #eff3f4}
+  .xskin .blk:has(> h1)::after{content:"长文";display:block;font-size:14px;color:#536471;padding:10px 0 16px;margin-bottom:22px;border-bottom:1px solid #eff3f4}
   .xskin .article h2{font-size:24px;line-height:1.3;font-weight:800;margin:34px 0 14px}
   .xskin .article h3,.xskin .article h4{font-size:17px;font-weight:700;margin:24px 0 10px}
   .xskin .article a{color:#1d9bf0;text-decoration:none}

@@ -106,6 +106,8 @@ export function makeChecker({ stores, browser, ask, fetchImpl = fetch, now = () 
       const enabled = PLATFORMS.filter(p => settings.platforms?.[p.key] !== false)
       if (!enabled.length) throw new UserError('平台都关了：去「设置」至少打开一个')
       progress.platformsTotal = enabled.length
+      // 每个平台一格，给页面「逐个点亮」用：todo 还没搜、doing 正在搜、done 搜完了（带结果）
+      progress.plats = enabled.map(p => ({ key: p.key, name: p.name, state: 'todo' }))
       // 搜索词：每个监控对象的名称 + 别名，记住每个词属于哪个对象
       const termTarget = new Map()
       for (const t of targets) for (const w of termsOf(t)) if (!termTarget.has(w)) termTarget.set(w, t.name)
@@ -121,6 +123,7 @@ export function makeChecker({ stores, browser, ask, fetchImpl = fetch, now = () 
       for (const p of enabled) {
         const key = p.key
         progress.platform = key
+        progress.plats = progress.plats.map(x => (x.key === key ? { ...x, state: 'doing' } : x))
         say(`正在搜${p.name}`)
         const st = (await stores.state.read()).platforms?.[key] ?? {}
         let res
@@ -160,6 +163,7 @@ export function makeChecker({ stores, browser, ask, fetchImpl = fetch, now = () 
         progress.found += tagged.length
         progress.fresh += fresh.length
         progress.platformsDone += 1
+        progress.plats = progress.plats.map(x => (x.key === key ? { ...x, state: 'done', status: res.status, paid: paidInfo?.status ?? null, found: tagged.length, fresh: fresh.length } : x))
         const rec = { status: res.status, note: res.note, via: res.via, at: at.toISOString(), found: tagged.length, fresh: fresh.length, dropped, paid: paidInfo }
         summary.platforms[key] = { status: res.status, found: tagged.length, fresh: fresh.length, paid: paidInfo?.status ?? null }
         await stores.state.change(d => {

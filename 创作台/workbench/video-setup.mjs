@@ -7,10 +7,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { spawn } from 'node:child_process';
-import { APP_DIR } from './core.mjs';
+import { APP_DIR, DATA_DIR } from './core.mjs';
 
 const RT = path.join(APP_DIR, 'video', 'runtime');
-const DATA = path.join(APP_DIR, 'data');
+const DATA = DATA_DIR;
 const NPM_VERSION = '10.9.2';
 const REGISTRIES = ['https://registry.npmjs.org', 'https://registry.npmmirror.com'];
 const MIRROR = 'https://registry.npmmirror.com';

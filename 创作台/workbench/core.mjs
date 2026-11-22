@@ -9,8 +9,9 @@ import { fileURLToPath } from 'node:url';
 import { CHROME, MAC, NODE, WIN, fileUrl, openCommand, quote, shellArgs } from './platform.mjs';
 
 export const APP_DIR = path.dirname(fileURLToPath(import.meta.url));
-const CONFIG_FILE = path.join(APP_DIR, 'config.json');
-const DATA_DIR = path.join(APP_DIR, 'data');
+// 数据放哪：装在 DSH 里时由插件指定（每个 DSH 各存各的），单独跑时放在程序旁边的 data/
+export const DATA_DIR = process.env.WB_DATA_DIR || path.join(APP_DIR, 'data');
+const CONFIG_FILE = process.env.WB_DATA_DIR ? path.join(DATA_DIR, 'config.json') : path.join(APP_DIR, 'config.json');
 const ACTIVITY_FILE = path.join(DATA_DIR, 'activity.jsonl');
 const META = '.workbench.json';
 
@@ -30,6 +31,26 @@ export function config() {
 }
 function saveConfig(c) { fs.writeFileSync(CONFIG_FILE, JSON.stringify(c, null, 2) + '\n'); }
 
+/* ---------- 你的账号：名字、定位、读者。AI 写稿、出选题时会参考，没填就按通用写法 ---------- */
+const PROFILE_FILE = path.join(DATA_DIR, 'profile.json');
+export function profile() {
+  try { const p = JSON.parse(fs.readFileSync(PROFILE_FILE, 'utf8')); return { name: String(p.name || ''), intro: String(p.intro || ''), audience: String(p.audience || '') }; }
+  catch { return { name: '', intro: '', audience: '' }; }
+}
+export function saveProfile(p = {}) {
+  const o = { name: String(p.name || '').trim().slice(0, 30), intro: String(p.intro || '').trim().slice(0, 200), audience: String(p.audience || '').trim().slice(0, 200) };
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(PROFILE_FILE, JSON.stringify(o, null, 2) + '\n');
+  return o;
+}
+/** 提示词里怎么称呼作者：填了名字是「作者「名字」」，没填就是「作者」 */
+export const who = () => { const n = profile().name; return n ? `作者「${n}」` : '作者'; };
+/** 一句话的账号信息，放进提示词；没填返回空串 */
+export function persona() {
+  const p = profile(), parts = [p.name && `账号：${p.name}`, p.intro && `账号定位：${p.intro}`, p.audience && `读者：${p.audience}`].filter(Boolean);
+  return parts.length ? parts.join('；') + '。' : '';
+}
+
 /* ---------- 小工具 ---------- */
 const exists = p => { try { fs.accessSync(p); return true; } catch { return false; } };
 const read = p => { try { return fs.readFileSync(p, 'utf8'); } catch { return ''; } };
@@ -42,7 +63,9 @@ const stripHtml = s => s.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/sty
 function sh(cmd, cwd, timeout = 10 * 60 * 1000) {
   return new Promise(resolve => {
     const [shell, args, extra] = shellArgs(cmd);
-    execFile(shell, args, { cwd, timeout, maxBuffer: 20 * 1024 * 1024, ...extra }, (err, stdout, stderr) =>
+    // 构建脚本（build.mjs）画封面时要写账号名字和一句话介绍，从这里传过去
+    const pf = profile(), env = { ...process.env, ...(extra?.env || {}), WB_AUTHOR: pf.name, WB_INTRO: pf.intro };
+    execFile(shell, args, { cwd, timeout, maxBuffer: 20 * 1024 * 1024, ...extra, env }, (err, stdout, stderr) =>
       resolve({ ok: !err, code: err ? (err.code ?? 1) : 0, out: (stdout + (stderr ? '\n' + stderr : '')).trim() }));
   });
 }

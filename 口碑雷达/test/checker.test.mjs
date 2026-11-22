@@ -195,6 +195,12 @@ test('没填监控对象不让检查；同时点两次只跑一次', async () =>
     const first = checker.run()
     await assert.rejects(checker.run(), /正在检查/)
     await first
+    // 检查时每个平台一格，给页面逐个点亮
+    const plats = checker.progress().plats
+    assert.deepEqual(plats.map(x => x.key), ['bilibili', 'xhs', 'news'])
+    assert.ok(plats.every(x => x.state === 'done'))
+    assert.equal(plats.find(x => x.key === 'xhs').status, 'login')
+    assert.equal(plats.find(x => x.key === 'bilibili').fresh, 2) // 带「飞机」的那条被排除
   } finally { await cleanup() }
 })
 
@@ -266,7 +272,14 @@ test('后台接口：列表筛选、手动改情绪、今天页的数字跟着�
     assert.equal((await p.call('list', { sentiment: 'neg' })).rows[0].reason, '骂售后')
     assert.equal((await p.call('list', { platform: 'bilibili', sentiment: 'all' })).total, 2)
     assert.equal((await p.call('list', { q: '小王' })).total, 1)
-    assert.equal((await p.call('overview')).stats.neg, 1)
+    const ov = await p.call('overview', { days: 7 })
+    assert.equal(ov.stats.neg, 1)
+    assert.equal(ov.board.days, 7)
+    assert.equal(ov.board.kpi.mentions, 2)
+    assert.equal(ov.board.kpi.negShare, 50)
+    assert.equal(ov.board.platforms.find(x => x.key === 'bilibili').pos, 1)
+    assert.deepEqual(all.facets.sentiments, { neg: 1, neu: 0, pos: 1, unknown: 0, unrelated: 1 })
+    assert.equal(all.facets.platforms.find(x => x.key === 'weibo').neg, 1)
     // 判错了：把「挺好」改成在骂
     const row = await p.call('setSentiment', { id: 2, sentiment: 'neg' })
     assert.equal(row.sentiment, 'neg')

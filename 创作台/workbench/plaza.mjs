@@ -6,11 +6,12 @@ import { execFile } from 'node:child_process';
 import crypto from 'node:crypto';
 import * as ai from './ai.mjs';
 import * as xapi from './x.mjs';
-import { APP_DIR } from './core.mjs';
+import { APP_DIR, DATA_DIR } from './core.mjs';
+import * as core from './core.mjs';
 import { CHROME } from './platform.mjs';
 
-const FEED = path.join(APP_DIR, 'data', 'feed.json');
-const IDEAS = path.join(APP_DIR, 'data', 'plaza-ideas.json');
+const FEED = path.join(DATA_DIR, 'feed.json');
+const IDEAS = path.join(DATA_DIR, 'plaza-ideas.json');
 export const TIERS = { A: { name: '官方一手', w: 1 }, B: { name: '社区一手', w: 0.85 }, C: { name: '原创报道', w: 0.6 }, D: { name: '转述', w: 0.35 } };
 
 // ai: true 表示这个源本身就是 AI 频道，不用再按关键词筛
@@ -40,7 +41,6 @@ export const SOURCES = [
   { id: 'suno', name: 'Suno', tier: 'A', kind: 'rss', url: 'https://suno.com/blog/rss.xml', ai: true, max: 8 },
   { id: 'ollama', name: 'Ollama', tier: 'A', kind: 'rss', url: 'https://ollama.com/blog/rss.xml', ai: true, max: 8 },
   // X：官方账号的帖子算 A，个人账号算 B（每条帖子自带档位）
-  { id: 'x', name: 'X（推特）', tier: 'B', kind: 'x', ai: true },
   // —— B 社区一手：新产品榜单、开发者自己发的 ——
   { id: 'hn', name: 'Hacker News', tier: 'B', kind: 'hn' },
   { id: 'ghtrend', name: 'GitHub 趋势', tier: 'B', kind: 'ghtrend', url: 'https://github.com/trending?since=weekly' },
@@ -87,6 +87,11 @@ export const SOURCES = [
   { id: 'stratechery', name: 'Stratechery', tier: 'C', kind: 'rss', url: 'https://stratechery.com/feed/', max: 8 },
   { id: 'exponential', name: 'Exponential View', tier: 'C', kind: 'rss', url: 'https://www.exponentialview.co/feed', max: 8 },
   { id: 'techmeme', name: 'Techmeme', tier: 'C', kind: 'rss', url: 'https://www.techmeme.com/feed.xml' },
+  // 国内科技媒体（2026-11-22 加的，都是公开 RSS）
+  { id: '36krflash', name: '36氪快讯', tier: 'C', kind: 'rss', url: 'https://www.36kr.com/feed-newsflash', zh: true, max: 20 },
+  { id: 'huxiu', name: '虎嗅', tier: 'C', kind: 'rss', url: 'https://rss.huxiu.com/', zh: true, max: 30 },
+  { id: 'cnbeta', name: 'cnBeta', tier: 'C', kind: 'rss', url: 'https://www.cnbeta.com.tw/backend.php', zh: true, max: 40 },
+  { id: 'juejin', name: '掘金', tier: 'C', kind: 'rss', url: 'https://juejin.cn/rss', zh: true, max: 20 },
   { id: 'ifanr', name: '爱范儿', tier: 'C', kind: 'rss', url: 'https://www.ifanr.com/feed', zh: true },
   { id: 'sspai', name: '少数派', tier: 'C', kind: 'rss', url: 'https://sspai.com/feed', zh: true },
   { id: 'appinn', name: '小众软件', tier: 'C', kind: 'rss', url: 'https://www.appinn.com/feed/', zh: true },
@@ -111,7 +116,8 @@ export const SOURCES = [
 const AI_RE = /\b(AI|A\.I\.|LLMs?|GPT[-\w.]*|ChatGPT|Claude|Gemini|Llama|Mistral|Qwen|DeepSeek|Kimi|Copilot|agents?|agentic|MCP|RAG|OpenAI|Anthropic|diffusion|transformers?|inference|embeddings?|multimodal|chatbots?|neural|fine-tun\w*|vibe[- ]coding|Cursor|Perplexity|Grok|Sora|Midjourney|Codex|NotebookLM|Runway|Kling|Suno|ElevenLabs|Lovable|Windsurf|MiniMax|GLM|Seedream|Seedance|Genspark)\b|人工智能|大模型|模型|智能体|AIGC|生成式|多模态|具身|算力|机器人|Agent|编程助手|豆包|通义|文心|元宝|千问|扣子|Manus|智谱|混元|即梦|可灵|海螺|讯飞|星火|月之暗面|阶跃|零一万物|百川|秘塔|纳米|夸克|灵光/i;
 // Hugging Face 榜单上常见的擦边内容，不要
 const JUNK = /uncensored|nsfw|heretic|abliterat|face-?swap|undress|nude|erotic/i;
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36';
+// 老实说自己是谁，不冒充浏览器
+export const UA = 'CreatorStudio/0.1 (DSH plugin; reads public feeds)';
 const hash = s => crypto.createHash('sha1').update(s).digest('hex').slice(0, 10);
 const decode = s => String(s || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&#039;|&apos;/g, "'").replace(/&nbsp;/g, ' ').replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&amp;/g, '&');
 const text = s => decode(decode(s)).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -384,7 +390,7 @@ function extract(html, max) {
 }
 function viaChrome(url) {
   return new Promise((resolve, reject) => {
-    execFile(CHROME, ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--user-data-dir=${path.join(APP_DIR, 'data', 'chrome-read')}`, '--virtual-time-budget=8000', `--user-agent=${UA}`, '--dump-dom', url],
+    execFile(CHROME, ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--user-data-dir=${path.join(DATA_DIR, 'chrome-read')}`, '--virtual-time-budget=8000', `--user-agent=${UA}`, '--dump-dom', url],
       { timeout: 25000, maxBuffer: 30 * 1024 * 1024 }, (e, out) => e ? reject(e) : resolve(out));
   });
 }
@@ -463,7 +469,7 @@ export function digestAll({ provider } = {}) {
     const batches = []; for (let i = 0; i < todo.length; i += 30) batches.push(todo.slice(i, i + 30));
     const one = async batch => {
       const out = await ai.generate({ provider: ai.light(provider),
-        system: '你是「AI 产品小易」的资讯编辑，替中文读者快速看懂每条 AI 动态。只根据给的标题和摘要写，不编造没给的事实。只输出 JSON。',
+        system: '你是资讯编辑，替中文读者快速看懂每条动态。只根据给的标题和摘要写，不编造没给的事实。只输出 JSON。',
         prompt: `下面每行是一条动态：编号、来源、原标题、摘要。\n${batch.map(it => `#${it.id} [${it.sourceName}] ${it.title}${it.summary ? ' —— ' + String(it.summary).slice(0, 260) : ''}`).join('\n')}\n\n每条输出一项：\n{"id":"编号，不带#","t":"中文标题，20 字以内，说清谁做了什么；产品名、人名保留原文","one":"一句话说清发生了什么、关键数字或结论，40 字以内；信息不够就照标题意思说，不要猜","cat":"分类，只能从这里选一个：${CATS.join('、')}"}\n分类提示：新上线的独立产品、工具、应用（Product Hunt、V2EX、Hugging Face 应用上的这类）选「AI 新品」；已有产品加功能、改版、调价选「产品更新」；用 AI 做的游戏、游戏里的 AI 玩法、AI 游戏开发工具和围绕它们的争议选「AI 游戏」；讲原理、教程、深度长文、论文解读、长访谈、科普视频选「AI 知识」；客户案例、活动预告选「其他」。\n只输出 JSON 数组。` });
       const arr = jsonOf(out) || [], f = feed();
       for (const x of arr) { const it = f.items[String(x?.id || '').replace('#', '')]; if (it && x.t) it.zh = { t: String(x.t).slice(0, 60), one: String(x.one || '').slice(0, 120), cat: CATS.includes(x.cat) ? x.cat : '其他' }; }
@@ -490,7 +496,7 @@ export function brief(id, { provider, force = false } = {}) {
     if (text.length < 200 && (it.full || it.summary)) { text = it.full || it.summary; via = via || '只有摘要'; }
     if (!text) throw new Error('原文读不到（可能要登录或禁止抓取），点「打开原网页」看');
     const out = await ai.generate({ provider: ai.light(provider),
-      system: '你是「AI 产品小易」的资讯编辑。账号定位：深度拆解 AI 产品的功能、设计和商业逻辑。只根据给的原文写，原文没说的不要补，数字照抄原文。只输出 JSON。',
+      system: `你是资讯编辑。${core.persona()}只根据给的原文写，原文没说的不要补，数字照抄原文。只输出 JSON。`,
       prompt: `来源：${it.sourceName}（${TIERS[it.tier].name}）\n原标题：${it.title}\n链接：${it.url}\n原文：\n<<<\n${text.slice(0, 24000)}\n>>>\n\n输出一个 JSON 对象：\n{"t":"中文标题，20 字以内","one":"一句话：发生了什么，40 字以内","points":["这篇讲了什么，3–6 条，每条一句，具体到事实"],"numbers":["原文里的关键数字，带对象和口径，没有就空数组"],"angle":"对写 AI 产品拆解的公众号来说，这条可以怎么写、值不值得写，一两句","who":"谁最该关心这条，一句","cat":"分类，只能选一个：${CATS.join('、')}"}` });
     const b = jsonOf(out, '{');
     if (!b?.points?.length) throw new Error('AI 没整理出来，再点一次试试');
@@ -540,13 +546,13 @@ export async function ideas({ direction = '', days = 7, provider, existing = [] 
   if (pool.length < 10) throw new Error('素材太少，先点「刷新信息源」');
   const lines = pool.map(it => `#${it.id} [${TIERS[it.tier].name}·${it.sourceName}] ${(it.time || it.firstSeen).slice(5, 10)}${it.heat?.points ? ` HN${it.heat.points}分/${it.heat.comments}评` : ''}${it.heat?.stars ? ` 本周+${it.heat.stars}星` : ''}${it.heat?.likes ? ` ${it.heat.likes}赞` : ''}${it.video ? ` 【视频${it.heat?.views ? '·播放' + (it.heat.views >= 10000 ? (it.heat.views / 10000).toFixed(1) + '万' : it.heat.views) : ''}】` : ''}${it.gap ? ' 【中文圈还没人讲】' : ''} ${it.zh?.t || it.title}${it.zh?.one ? ' — ' + it.zh.one : it.summary ? ' — ' + it.summary.slice(0, 90) : ''}`).join('\n');
   const out = await ai.generate({ provider: ai.light(provider),
-    system: '你是「AI 产品小易」的选题编辑。账号定位：深度了解每一个 AI 产品，拆解 AI 产品的功能、设计和商业逻辑；平台有公众号长文、X 和即刻上的短评、小红书卡片、抖音和视频号上的 AI 科普短视频。你只能用给你的素材，不编造。只输出 JSON。',
+    system: `你是选题编辑。${core.persona()}能发的平台有公众号长文、小红书卡片和图文、知乎、今日头条、微博，以及抖音和视频号上的短视频。你只能用给你的素材，不编造。只输出 JSON。`,
     prompt: `下面是最近 ${days} 天从各信息源抓到的 ${pool.length} 条动态，每条前面是编号和可信度：官方一手 > 社区一手 > 原创报道 > 转述。
 ${lines}
 
 ${direction ? `这次关注的方向：${direction}。\n` : ''}请分四类挑：
 1. articles：适合写成公众号长文的选题，5–7 个。要能写出深度拆解、横向对比或行业分析；多个来源同时在说、有争议或有信息差的优先；证据至少一条「官方一手」或「社区一手」，「转述」只能当热度参考。避开已经写过的：${existing.slice(0, 30).join('、') || '（无）'}。
-2. takes：适合发一条短评的动态，6–8 条。新鲜、有反差、一句话就能说出观点的事。每条替作者写好一段能直接发在 X 或即刻上的短评：60–120 字，第一人称，有自己的判断，说清楚事实再给看法；像真人随手写的，不用“不是……而是……”，不用排比和金句收尾，不堆感叹号和表情。
+2. takes：适合发一条短评的动态，6–8 条。新鲜、有反差、一句话就能说出观点的事。每条替作者写好一段能直接发在微博或朋友圈的短评：60–120 字，第一人称，有自己的判断，说清楚事实再给看法；像真人随手写的，不用“不是……而是……”，不用排比和金句收尾，不堆感叹号和表情。
 3. projects：适合专门写一篇或做一组卡片来拆解的项目，5–7 个：新产品、新功能、开源仓库、工具。要说清它是什么、为什么值得拆；形式是 article（公众号拆解）或 card（小红书卡片，适合一眼能看懂的产品）。
 4. videos：适合做成 AI 科普短视频（60–120 秒口播 + 画面）的选题，5–7 个。优先三种：素材里带【视频】标记、播放量高的题目换个角度讲（写明参考的是哪条、播放多少）；带【中文圈还没人讲】标记的海外内容，讲给中文观众听；普通人用得上的 AI 新功能、新工具。每个要能一句话说清「看完能知道什么」，开头第一句话要让人想听下去。避开已经写过的。
 标题像真人起的：具体、有信息量，不要标题党。

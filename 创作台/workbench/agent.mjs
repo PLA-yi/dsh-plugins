@@ -2,6 +2,7 @@
 // 每次都先读全局记忆（memory.mjs），也能翻作者别的文章和卡片、选题广场。
 // 每一轮改过的文件都记下原样，可以整轮撤销；改之前也照常存历史版本。生图要花钱，默认先让作者确认。
 import * as xapi from './x.mjs';
+import * as cn from './cn.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -24,7 +25,7 @@ const readJ = (dir, f, d) => { try { return JSON.parse(fs.readFileSync(path.join
 const writeJ = (dir, f, v) => fs.writeFileSync(path.join(wdir(dir), f), JSON.stringify(v, null, 2));
 const brief = a => ({ id: a.id, file: a.file, title: a.title });
 const run1 = (cmd, args, ms = 90000) => new Promise((ok, no) => execFile(cmd, args, { timeout: ms }, (e, out, err) => e ? no(new Error(String(err || e.message).slice(-400))) : ok(out)));
-const SHOTS = path.join(core.APP_DIR, 'data', 'shots');
+const SHOTS = path.join(core.DATA_DIR, 'shots');
 // 无头 Chrome 截图；长页面切成几段，每段 2000 像素高
 export async function shoot(url, width, height, segs) {
   fs.mkdirSync(SHOTS, { recursive: true });
@@ -63,7 +64,7 @@ const TOOLS = [
   { name: 'view_cards', only: 'card', description: '看卡片现在的样子（直接按 index.html 渲染，不用先 build_cards）。pages 填页码（data-n 的值，比如 ["1","2"]），不填就看全部。改完一定要看一眼有没有文字溢出、被截掉、挤在一起。', input_schema: { type: 'object', properties: { pages: { type: 'array', items: { type: 'string' } } } } },
   { name: 'copy_asset', description: '把素材库里的一张图复制到这个项目的 img/ 里，返回相对路径（卡片里用 <img src="img/…">）。', input_schema: { type: 'object', properties: { asset_id: { type: 'string' } }, required: ['asset_id'] } },
   { name: 'remember', description: '把作者明确要求记住的偏好马上记下（作者说“记住”“以后都……”“我不喜欢……”时用）。一次性的修改要求不要记；只对这一篇成立的（这篇的读者、角度、约定）scope 填 project。记之前先看系统提示里已有的记忆，别重复。', input_schema: { type: 'object', properties: { text: { type: 'string', description: '一句话写清楚（60 字以内），单独拿出来也看得懂' }, kind: { type: 'string', enum: Object.keys(memory.KINDS), description: 'profile 我是谁 / style 写作风格 / avoid 不要这样 / layout 排版和视觉 / cards 小红书卡片 / phrase 口头说法（作者的模糊说法实际指什么）/ ideas 想法和选题 / howto 做法和经验 / other' }, scope: { type: 'string', enum: ['all', 'article', 'card', 'project'], description: 'all 所有作品 / article 只管文章 / card 只管卡片 / project 只对这一篇' }, why: { type: 'string', description: '为什么：作者的原话或理由' }, detail: { type: 'string', description: '怎么做：具体做法、例子（可空）' }, check: { type: 'string', description: '能在成稿里逐句检查的，写成一句检查项（可空）' } }, required: ['text', 'kind'] } },
-  { name: 'search_x', needs: 'x', description: '在 X（推特）上搜最近 7 天的帖子，看官方账号原话、开发者和用户的一手反应、实测和吐槽。X 按读到的帖子收费，所以少用、搜得准：关键词用英文或产品原名，能限定账号就填 from；一次 10–30 条够了，同一个问题别反复搜。读某条帖子的全文用 read_page 打开它的链接。', input_schema: { type: 'object', properties: { query: { type: 'string', description: 'X 搜索语法，比如 "DeepSeek Harness" lang:en、"Kimi K2" min_faves:50' }, from: { type: 'string', description: '只看这些账号，空格隔开，比如 deepseek_ai karpathy' }, max: { type: 'integer', description: '最多几条，10–50，默认 20' } }, required: ['query'] } },
+  { name: 'search_cn', description: '在国内平台上搜一个词：公众号文章、B 站视频、中文新闻，各给前几条（标题、作者、时间、链接、摘要）。查国内的讨论、报道和用户反应时用；要看原文再用 read_page 读链接。', input_schema: { type: 'object', properties: { query: { type: 'string', description: '要搜的词，简短，比如产品名、事件名' } }, required: ['query'] } },
   { name: 'read_page', description: '读一个网页的原文全文（不是摘要）。查资料时用它代替 web_fetch / WebFetch：拿到的是原文，数字、原话、口径都不会丢。会自动换办法读：直接抓 → 无头 Chrome → GitHub 接口 → Jina → 让 Claude 读，要登录的站（X、微博、知乎、小红书）也能读到大部分。长文分段读：返回里会告诉你 from 填多少接着读。原文会存进这篇的资料夹。', input_schema: { type: 'object', properties: { url: { type: 'string' }, from: { type: 'integer', description: '从第几个字开始读，默认 0' } }, required: ['url'] } },
   { name: 'save_research', description: '把查到的资料记进这篇的「资料」页（作者能看到，之后每一轮你也会读到）。每条一个问题或主题；结论写具体事实和数字（带时间和口径）；tier 标来源等级；quote 放原文里支撑结论的那句话（原样摘，不改字）；sources 放出处链接。只有转述、没有一手来源的关键数字，结论里写明“待核”。资料页已有的不要重复记。', input_schema: { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { q: { type: 'string', description: '问题或主题，比如「日活和月活」' }, answer: { type: 'string', description: '查到的结论：具体事实、数字（带时间、口径）、谁说的' }, tier: { type: 'string', enum: ['官方一手', '社区一手', '报道', '转述'], description: '官方一手：公司官网、官方文档、官方账号、GitHub 官方仓库；社区一手：开发者、用户本人的帖子和实测；报道：媒体原创报道；转述：转载、聚合、二手解读' }, quote: { type: 'string', description: '原文里支撑结论的那句话，原样摘录' }, sources: { type: 'array', items: { type: 'string' }, description: '出处链接' } }, required: ['q', 'answer', 'tier'] } } }, required: ['items'] } },
   { name: 'recall_memory', description: '按编号读某几条记忆的全文。平时用不到：相关的记忆已经按这一轮的事挑好放在系统提示里了。', input_schema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' } } }, required: ['ids'] } },
@@ -113,7 +114,7 @@ function system(confirm, type, project = '', memBlock = null, form = '') {
   const mem = memBlock ?? memory.select({ type: card ? 'card' : 'article', project }).block;
   const works = learn.promptBlock(card ? 'card' : 'article');
   const sk = skills.enabled();
-  return `你是「小易工作台」里的 AI 助手，和作者「AI 产品小易」一起做${card ? '这组小红书图文卡片' : script ? '这条短视频的口播稿（视频脚本，写在 article.md 里）' : '这篇公众号文章'}。你可以直接动手：${card ? '改卡片的文案、版式和样式，找图、生图' : '改正文、改排版模板、找配图、生成配图'}。
+  return `你是「创作台」里的 AI 助手，和${core.who()}一起做${card ? '这组小红书图文卡片' : script ? '这条短视频的口播稿（视频脚本，写在 article.md 里）' : '这篇公众号文章'}。你可以直接动手：${card ? '改卡片的文案、版式和样式，找图、生图' : '改正文、改排版模板、找配图、生成配图'}。
 
 ${mem ? `作者的记忆（括号里是编号）：\n${mem}\n\n` : ''}${works ? `${works}\n\n` : ''}${sk.length ? `可用的技能（做相关的事之前先 load_skill 读全文；技能里提到的脚本、命令你跑不了，只照它的方法和规则做）：\n${sk.map(x => `- ${x.name}：${x.description.slice(0, 220)}`).join('\n')}\n\n` : ''}${card ? CARD_FILES : ARTICLE_FILES}
 
@@ -131,7 +132,7 @@ ${mem ? `作者的记忆（括号里是编号）：\n${mem}\n\n` : ''}${works ? 
 11. 所有文字都用中文。调用工具的过程中不用解说自己在干什么（界面上会自动显示每一步），最后统一总结。
 12. 每次改文件都会自动存历史版本，作者可以一键撤销整轮改动，所以明确的要求放手去改，不用反复确认。
 13. 大纲稿：作者说“先聊聊”“先定大纲”“先出个框架”“等我点头再写”时，先出大纲稿，不写正文。顺序不能乱：
-    ① 先查资料。顺序：先看「资料」里已经有的；再 browse_plaza 看选题广场里分好级的动态；然后去涉及公司的官方渠道找（官网、官方文档、更新日志、官方博客、GitHub 官方仓库，用 site: 限定域名搜）；${xapi.config().token ? '再用 search_x 在 X 上搜官方账号的原话和开发者、用户的一手反应（这是社区一手，要带账号和日期）；' : ''}最后才是媒体报道。找到的页面用 read_page 读原文，不要只看搜索摘要或 web_fetch / WebFetch 的概括。关键事实和数字用 save_research 记进资料页：标来源等级，quote 摘原文那句话，写清时间、口径、出处；关键数字只有转述、没有一手来源的，写明“待核”，正文里写成“据某某报道”。资料没查够之前不要定标题。
+    ① 先查资料。顺序：先看「资料」里已经有的；再 browse_plaza 看选题广场里分好级的动态；然后去涉及公司的官方渠道找（官网、官方文档、更新日志、官方博客、GitHub 官方仓库，用 site: 限定域名搜）；再用 search_cn 搜国内平台（公众号文章、B 站、中文新闻）上的报道和讨论，看国内用户怎么说；最后才是媒体报道。找到的页面用 read_page 读原文，不要只看搜索摘要或 web_fetch / WebFetch 的概括。关键事实和数字用 save_research 记进资料页：标来源等级，quote 摘原文那句话，写清时间、口径、出处；关键数字只有转述、没有一手来源的，写明“待核”，正文里写成“据某某报道”。资料没查够之前不要定标题。
     ② 汇总资料，想清楚这篇最值得讲的几件事、每件的核心结论是什么，再定结构。
     ③ 定标题。小标题必须自带信息：读者只看这一行，就知道这节讲什么、能得到什么结论。写具体的主语和事实（谁、做了什么、结果是什么；数字要带对象和单位，比如“每天烧掉 92 万亿 Token，多半花在插件反复调用上”，而不是“92 万亿 Token 一天，这笔账怎么算”）。小标题写成陈述句、直接给结论，不写问句（“为什么……”“怎么算的”“能拿走什么”都不行），不用谜语和双关、不用没头没尾的数字、不用圈内黑话，20 字左右。比如“154 万只算官方 API 用户，人均每天约 6000 万 Token”“装到十几个插件就容易卡死，官方说会补稳定性”。大标题也按这个标准起 2–3 个。写完把所有标题单独读一遍，有一个看不懂、或者是问句就重写。
     ④ 把大纲写进 outline.md（大纲页编辑的就是它，和${card ? '卡片' : '正文'}分开；这时不要动 ${card ? 'index.html' : 'article.md'}）。照这个格式写，别的格式大纲页显示不好：
@@ -328,6 +329,10 @@ async function run0(dir, { message, focus = '', stage = '', provider, title = ''
       turn.memo.push({ op: 'add', id: it.id, kind: it.kind, text: it.text });
       step('bookmark', `记住了：${it.text.slice(0, 40)}`);
       return `已记进全局记忆（${it.id}）`;
+    },
+    async search_cn({ query }) {
+      step('search', `在国内平台上搜「${String(query).slice(0, 30)}」`);
+      return cn.searchText(query);
     },
     async search_x({ query, from = '', max = 20 }) {
       const l = await xapi.search(query, { from, max: Math.min(50, max) });

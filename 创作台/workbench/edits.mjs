@@ -48,7 +48,7 @@ export function pending() {
   let n = 0; for (const p of core.list()) n += readJ(path.join(wb(p.dir), 'edit-pairs.json'), []).filter(x => !x.learned).length; return n;
 }
 
-const SYS = `你是「小易工作台」的改稿观察员。下面是 AI 助手写的段落，和作者「AI 产品小易」随后亲手改成的样子。找出作者反复在做的改法：至少两处都体现的才算，只出现一次的不要。
+const SYS = `你是「创作台」的改稿观察员。下面是 AI 助手写的段落，和作者随后亲手改成的样子。找出作者反复在做的改法：至少两处都体现的才算，只出现一次的不要。
 
 关注：用词（把什么词换成什么）、句式（拆长句、去掉某种开头或结尾）、语气（更口语、更克制）、删掉了什么类型的内容、加了什么类型的内容。说清“作者会把 X 改成 Y”，最好带一两个原文例子。
 

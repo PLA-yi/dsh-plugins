@@ -17,7 +17,7 @@
  * 改了这个文件要重启 DSH 才生效（页面文件 client.js 改了会自动生效）。
  */
 import { join } from 'node:path'
-import { MANUAL_SENTIMENTS, PLATFORMS, PLATFORM_NAME, dateOf, dayStats, daysBefore, makeBudget, monthOf, sentimentOf, severityOf, short } from './host/core.js'
+import { MANUAL_SENTIMENTS, PLATFORMS, PLATFORM_NAME, boardStats, dateOf, dayStats, daysBefore, engagementOf, filterItems, listFacets, makeBudget, monthOf, sentimentOf, severityOf, short, termsOf } from './host/core.js'
 import { BROWSER_PLATFORMS, makeBrowser } from './host/browser.js'
 import { UserError, makeChecker } from './host/checker.js'
 import { makeAsk, modelName } from './host/judge.js'
@@ -52,7 +52,7 @@ const fixState = s => ({ platforms: {}, runs: [], reports: {}, spend: {}, lastAu
 /** 列表里一行：正文截短，不带太多东西。 */
 const row = it => ({
   id: it.id, platform: it.platform, kind: it.kind, url: it.url, author: it.author, time: it.time, foundDate: it.foundDate,
-  title: short(it.title, 60), text: short(it.text, 160), parentTitle: short(it.parentTitle, 40), likes: it.stats?.likes ?? null, via: it.via,
+  title: short(it.title, 60), text: short(it.text, 160), parentTitle: short(it.parentTitle, 40), likes: it.stats?.likes ?? null, comments: it.stats?.comments ?? null, shares: it.stats?.shares ?? null, engagement: engagementOf(it), via: it.via,
   sentiment: sentimentOf(it), severity: severityOf(it), reason: it.judge?.reason ?? '', aspect: it.judge?.aspect ?? '', manual: Boolean(it.manual?.sentiment),
   judgeError: it.judge?.status === 'failed' ? it.judge.error : '',
 })
@@ -83,8 +83,11 @@ const words = (list, max, len) => [...new Set((Array.isArray(list) ? list : Stri
 
 function makeHandlers({ stores, checker, browser, ctx, log }) {
   return {
-    /** 「今天」页：一句话结论、日报、最严重的几条、近 14 天、各平台状态、检查进度。 */
-    async overview() {
+    /**
+     * 「今天」页：一句话结论、日报、最严重的几条、近 14 天、各平台状态、检查进度。
+     * board 是看板上的图：今天的大数字、近 days 天（7 到 30）的情绪走势、各平台、负面在骂什么、高频词。
+     */
+    async overview({ days = 14 } = {}) {
       const [settings, { items }, state, secret] = await Promise.all([stores.settings.read(), stores.items.read(), stores.state.read(), stores.secret.read()])
       const today = dateOf()
       const stats = dayStats(items, today)
@@ -96,6 +99,7 @@ function makeHandlers({ stores, checker, browser, ctx, log }) {
         stats: { ...stats, worstIds: undefined }, report, worst, platforms: platformView(settings, state, secret, browser.running()),
         progress: checker.progress(), lastRun: state.runs?.[0] ?? null, spend, model: modelName(ctx),
         auto: { enabled: settings.autoEnabled, time: settings.autoTime },
+        board: boardStats(items, today, { days, terms: settings.targets.flatMap(termsOf) }),
       }
     },
 
@@ -112,22 +116,16 @@ function makeHandlers({ stores, checker, browser, ctx, log }) {
       return checker.progress()
     },
 
-    /** 「全部评论」：按平台、情绪、日期、关键词筛。 */
-    async list({ platform = 'all', sentiment = 'related', range = '7', q = '', page = 1, size = 50 } = {}) {
+    /** 「全部评论」：按平台、情绪、日期、关键词筛。facets 是筛选上方的小图（各平台、各情绪多少条，每天多少条）。 */
+    async list({ platform = 'all', sentiment = 'related', range = '7', q = '', aspect = '', page = 1, size = 50 } = {}) {
       const { items } = await stores.items.read()
-      const from = range === 'all' ? '' : range === 'today' ? dateOf() : daysBefore(dateOf(), Number(range) - 1)
-      const kw = clean(q, 40).toLowerCase()
-      const rows = items.filter(it => {
-        if (platform !== 'all' && it.platform !== platform) return false
-        if (from && it.foundDate < from) return false
-        const s = sentimentOf(it)
-        if (sentiment === 'related' ? ['unrelated'].includes(s) : sentiment !== 'all' && s !== sentiment) return false
-        if (kw && !`${it.title ?? ''} ${it.text ?? ''} ${it.author ?? ''} ${it.parentTitle ?? ''}`.toLowerCase().includes(kw)) return false
-        return true
-      }).sort((a, b) => b.id - a.id)
+      const today = dateOf()
+      const from = range === 'all' ? '' : range === 'today' ? today : daysBefore(today, Number(range) - 1)
+      const f = { platform, sentiment, from, kw: clean(q, 40), aspect: clean(aspect, 20) }
+      const rows = filterItems(items, f).sort((a, b) => b.id - a.id)
       const n = Math.min(200, Math.max(10, Number(size) || 50))
       const p = Math.max(1, Number(page) || 1)
-      return { total: rows.length, rows: rows.slice(0, p * n).map(row), hasMore: rows.length > p * n }
+      return { total: rows.length, rows: rows.slice(0, p * n).map(row), hasMore: rows.length > p * n, facets: listFacets(items, f, today) }
     },
 
     /** 一条的全部内容（点开看原文）。 */

@@ -2,7 +2,7 @@
   "name": "@local/creator-studio",
   "version": "0.1.0",
   "private": true,
-  "description": "创作台：把小易工作台（文章、小红书卡片、视频、选题广场、素材、记忆）搬进 DSH，AI 用 DSH 里配好的模型。",
+  "description": "创作台：写文章、做小红书卡片和短视频，国内热榜和国内搜索找选题，一键整理发到公众号、小红书、知乎、今日头条、微博。AI 用 DSH 里配好的模型。",
   "type": "module",
   "exports": {
     ".": "./index.js",
@@ -18,9 +18,7 @@
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
-    "workbench/**",
-    "!workbench/data/**",
-    "!workbench/config.json"
+    "workbench/**"
   ],
   "dsh": {
     "bundle": {

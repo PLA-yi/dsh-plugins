@@ -33,7 +33,7 @@ export const STYLES = [
   { id: 'sfx', name: '音效点', note: '弹字、转场时加轻音效', spec: '大字弹出、切换小节、画面切到配图时加一个很短的音效（whoosh、pop、click 这类），音量压到口播的三分之一以下。音效只用 /media-use 技能里自带的素材，不要引用网上的。整片不超过 12 个。' },
 ];
 const DEFAULT_STYLES = { talk: ['jumpcut', 'punch', 'captions', 'keyword'], explain: ['captions'] };
-const STYLE_FILE = path.join(core.APP_DIR, 'data', 'video-styles.json');
+const STYLE_FILE = path.join(core.DATA_DIR, 'video-styles.json');
 // 自己攒的手法（拉片时存下来的）
 export function customStyles() { try { const j = JSON.parse(fs.readFileSync(STYLE_FILE, 'utf8')); return Array.isArray(j) ? j.filter(x => x?.id && x.name && x.spec) : []; } catch { return []; } }
 export const allStyles = () => [...STYLES, ...customStyles().map(x => ({ ...x, custom: true }))];
@@ -174,9 +174,9 @@ function styleSection(m) {
 // 写给 Claude Code 的说明：放在视频文件夹里的 CLAUDE.md，它每次开工都会读
 function guide(m) {
   const a = ASPECTS[m.aspect], portrait = a.h > a.w, talk = m.mode === 'talk';
-  return `# 小易工作台里的一条视频
+  return `# 创作台里的一条视频
 
-你在帮「AI 产品小易」做一条短视频。作者不懂代码，只看成片和你的回复。**用中文回复，说人话，每次回复控制在几句话**：做了什么、现在是什么样、接下来要作者做什么。配音、导出这些都是工作台上的按钮：作者点「生成配音」后，工作台会自动把结果告诉你，不用让作者再来转告。不要贴代码，不要讲技术细节。
+你在帮${core.who()}做一条短视频。${core.persona()}作者不懂代码，只看成片和你的回复。**用中文回复，说人话，每次回复控制在几句话**：做了什么、现在是什么样、接下来要作者做什么。配音、导出这些都是工作台上的按钮：作者点「生成配音」后，工作台会自动把结果告诉你，不用让作者再来转告。不要贴代码，不要讲技术细节。
 
 ## 这条视频
 
@@ -313,7 +313,7 @@ function stepOf(name, input = {}) {
   return null;
 }
 const TOOLS = ['Read', 'Write', 'Edit', 'MultiEdit', 'Glob', 'Grep', 'Skill', 'TodoWrite', 'Bash(hyperframes:*)', 'Bash(ls:*)', 'Bash(cat:*)', 'Bash(mkdir:*)', 'Bash(cp:*)', 'Bash(ffprobe:*)'];
-const SYSTEM = '你在「小易工作台」的视频板块里工作，替不懂代码的作者把文章做成视频。严格按这个文件夹里 CLAUDE.md 的约定做。只在当前文件夹里读写文件。用中文回复，简短，不贴代码。';
+const SYSTEM = '你在「创作台」的视频板块里工作，替不懂代码的作者把文章做成视频。严格按这个文件夹里 CLAUDE.md 的约定做。只在当前文件夹里读写文件。用中文回复，简短，不贴代码。';
 // 用模型接口干活时（没有 Claude Code）：说明直接放进系统提示，工具名和 Claude Code 的对应一下
 const SYSTEM_API = `${SYSTEM}
 

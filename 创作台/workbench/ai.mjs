@@ -12,10 +12,10 @@ import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 import os from 'node:os';
 import Anthropic from './vendor/anthropic-sdk.mjs';
-import { APP_DIR } from './core.mjs';
+import { APP_DIR, DATA_DIR } from './core.mjs';
 
-const FILE = path.join(APP_DIR, 'data', 'ai.json');
-const SANDBOX = path.join(APP_DIR, 'data', 'hermes-sandbox');
+const FILE = path.join(DATA_DIR, 'ai.json');
+const SANDBOX = path.join(DATA_DIR, 'hermes-sandbox');
 
 const DEFAULTS = [
   { id: 'hermes', name: 'Hermes（本机，免配置）', type: 'hermes', model: '' },
@@ -252,7 +252,7 @@ async function openaiCompat(p, system, prompt, onText, signal) {
    调本机 Claude Code 的无界面模式（claude -p）。优先用终端里装的 claude；没装就用桌面 App 自带的那份（App 更新后自动找最新版本）。
    不带桌面 App 的环境变量，用作者自己的登录（第一次要在终端运行 xy ai login）。在空文件夹里跑，内置工具全关
    （要联网时只开搜索和读网页），不加载 MCP、不存会话，所以碰不到作者的文件。 */
-const CC_SANDBOX = path.join(APP_DIR, 'data', 'claude-code-sandbox');
+const CC_SANDBOX = path.join(DATA_DIR, 'claude-code-sandbox');
 export function ccBin() {
   const home = os.homedir();
   for (const d of [path.join(home, '.local', 'bin'), path.join(home, '.claude', 'local'), '/opt/homebrew/bin', '/usr/local/bin']) { const f = path.join(d, 'claude'); if (fs.existsSync(f)) return f; }
@@ -368,7 +368,7 @@ function hermes(p, system, prompt, onText, signal, web) {
 }
 
 /* ---------- 写作规则：来自你之前对文章的要求 ---------- */
-export const WRITING_RULES = `你在帮「AI 产品小易」改中文文章（公众号 / 小红书风格的产品拆解）。规则：
+export const WRITING_RULES = `你在帮作者改中文文章（公众号、小红书、知乎这类平台的图文内容）。规则：
 - 事实、数字、日期、名字、归因和限定词（可能、据媒体报道、约、超过……）一个都不能改，也不能新增原文没有的事实或数字。需要资料才能写的地方，用【待补：要补什么】标出来。
 - 要像真人写的：有人味、口语化，同时专业。多用具体场景和例子，少用空话。
 - 不用这些写法：「不是……而是……」的假对比；排比三连；「真正的 / 核心 / 本质上 / 说白了 / 值得注意的是 / 某种程度上」；「赋能 / 打通 / 闭环 / 赛道」这类词；金句式、升华式收尾；口号式标题。
@@ -422,7 +422,7 @@ export const ARTICLE_TASK_NAMES = Object.fromEntries(Object.entries(ARTICLE_TASK
 
 export function cardPrompt({ css, section, element, instruction }) {
   return {
-    system: `你在帮「AI 产品小易」精修一张小红书卡片。卡片是一页 720×960 的 HTML，样式在页面的 <style> 里。
+    system: `你在帮作者精修一张小红书卡片。卡片是一页 720×960 的 HTML，样式在页面的 <style> 里。
 你只改用户选中的那一块 HTML，按指令修改后返回替换它的完整 HTML（从开始标签到结束标签）。
 - 保留原有的 class、结构和视觉风格，除非指令要求改
 - 不要超出卡片尺寸：文字变多时要相应精简，别让内容溢出

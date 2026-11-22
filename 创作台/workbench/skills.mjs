@@ -6,9 +6,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { APP_DIR } from './core.mjs';
+import { APP_DIR, DATA_DIR } from './core.mjs';
 
-const WS = path.join(APP_DIR, 'data', 'skills'), CONF = path.join(APP_DIR, 'data', 'skills.json');
+const WS = path.join(DATA_DIR, 'skills'), CONF = path.join(DATA_DIR, 'skills.json');
 export const ROOTS = [
   { src: 'ws', name: '工作台安装', dir: WS },
   { src: 'cc', name: '本机 Claude Code', dir: path.join(os.homedir(), '.claude', 'skills') },

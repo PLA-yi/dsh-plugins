@@ -102,9 +102,35 @@ window.__ModuleLoader__.load({
   --$-chart-7:color-mix(in srgb,var(--$-chart-1) 45%,var(--$-bg));
   --$-chart-8:color-mix(in srgb,var(--$-chart-2) 45%,var(--$-bg));
   --$-chart-9:color-mix(in srgb,var(--$-chart-3) 45%,var(--$-bg));
+  /* 口碑雷达自己的颜色。情绪：骂 / 中性 / 夸 / 没判断 */
+  --$-neg:var(--$-danger);
+  --$-neu:color-mix(in srgb,var(--$-text-3) 55%,var(--$-bg));
+  --$-pos:var(--$-success);
+  --$-unk:var(--$-warn);
+  /* 严重程度：1 轻微吐槽、2 明确不满、3 严重，越严重越红 */
+  --$-sev-1:color-mix(in srgb,var(--$-danger) 36%,var(--$-bg));
+  --$-sev-2:color-mix(in srgb,var(--$-danger) 66%,var(--$-bg));
+  --$-sev-3:var(--$-danger);
+  --$-on-strong:#FFFFFF;                 /* 深红块、平台小方块上的字 */
+  /* 各平台的识别色：只用在平台小方块上，图表里不用（免得和「骂」的红色混在一起） */
+  --$-p-weibo:#E6162D;
+  --$-p-bilibili:#FB7299;
+  --$-p-zhihu:#1772F6;
+  --$-p-xhs:#FF2442;
+  --$-p-douyin:#16151C;
+  --$-p-wechat:#07C160;
+  --$-p-news:#6A5AD8;
 }
 /* 深色：上面哪一行写了自己的色值，就在这里给它写一个深色时用的值。没改颜色就留空。 */
 body[data-ds-dark-theme] .$-root{
+  --$-on-strong:#FFFFFF;
+  --$-p-weibo:#F0384D;
+  --$-p-bilibili:#F2789E;
+  --$-p-zhihu:#3B8AF7;
+  --$-p-xhs:#F43D58;
+  --$-p-douyin:#4A4857;
+  --$-p-wechat:#13B868;
+  --$-p-news:#8678E6;
 }
 `
 
@@ -441,6 +467,12 @@ select.$-input{cursor:pointer}
       mail: 'M4 6h16v12H4zM4 7l8 6 8-6',
       trend: 'M4 19h16M5 15l4.5-5 4 3L19 6',
       radar: ['M12 3a9 9 0 1 0 9 9', 'M12 7.5a4.5 4.5 0 1 0 4.5 4.5', 'M12 12l6.5-6.5'],
+      heart: 'M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z',
+      share: 'M14 5l6 6-6 6M20 11H10a6 6 0 0 0-6 6v2',
+      arrowUp: 'M12 19V5M6 11l6-6 6 6',
+      arrowDown: 'M12 5v14M6 13l6 6 6-6',
+      flame: 'M12 21a6 6 0 0 0 6-6c0-4-3-6-4-9-1 2-2 3-3.5 3.5C9 8 8.5 6.5 9 5c-3 2-3 6.5-3 10a6 6 0 0 0 6 6z',
+      table: 'M4 5h16v14H4zM4 10h16M4 15h16M10 5v14',
     }
     function Icon({ name, size = 16 }) {
       return h('svg', { viewBox: '0 0 24 24', width: size, height: size, fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true },
@@ -929,49 +961,465 @@ select.$-input{cursor:pointer}
 
     // 这个插件自己的样式写在这里：类名前面写 $-，用的时候 cls('名字')；颜色用「外观」段里的变量。
     const PAGE_STYLES = `
-.$-hero{margin:0;font-size:28px;line-height:38px;font-weight:500;font-family:var(--$-font-title)}
-.$-hero-neg{color:var(--$-danger)}
-.$-hero-ok{color:var(--$-success)}
 .$-clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .$-clamp-3{-webkit-line-clamp:3}
 .$-pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:22px}
-.$-hits{display:flex;flex-direction:column}
-.$-hit{display:flex;flex-direction:column;gap:6px;width:100%;padding:12px 4px;border:0;border-bottom:.5px solid var(--$-line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.$-hit:last-child{border-bottom:0}
-.$-sev{display:inline-flex;gap:2px}
-.$-sev i{width:6px;height:12px;border-radius:2px;background:var(--$-line-2)}
-.$-sev i[data-on=true]{background:var(--$-danger)}
-.$-cols{display:flex;align-items:flex-end;gap:6px;height:120px;padding-top:18px}
-.$-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:0;height:100%}
-.$-col-bar{width:100%;max-width:28px;min-height:2px;border-radius:var(--$-r-xs) var(--$-r-xs) 0 0;background:var(--$-danger)}
-.$-col-bar[data-zero=true]{background:var(--$-line-2)}
-.$-col-bar[data-today=true]{box-shadow:0 0 0 1.5px var(--$-text) inset}
-.$-col-n{color:var(--$-text-2);font-size:11px;line-height:14px;font-variant-numeric:tabular-nums}
-.$-col-d{color:var(--$-text-3);font-size:10px;line-height:14px;white-space:nowrap}
+.$-num{font-variant-numeric:tabular-nums}
+/* 严重程度：三根从矮到高的小条，亮几根就是几级 */
+.$-sev{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.$-sev-bars{display:inline-flex;align-items:flex-end;gap:2px}
+.$-sev-bars i{display:block;width:5px;border-radius:2px;background:var(--$-line-2)}
+.$-sev-bars i:nth-child(1){height:6px}.$-sev-bars i:nth-child(2){height:9px}.$-sev-bars i:nth-child(3){height:12px}
+.$-sev-text{color:var(--$-text-2);font-size:12px;line-height:18px}
+/* 平台小方块 */
+.$-pb{display:inline-flex;align-items:center;justify-content:center;flex:none;width:var(--s,20px);height:var(--s,20px);border-radius:calc(var(--s,20px) * .3);color:var(--$-on-strong);font-size:calc(var(--s,20px) * .55);font-weight:700;line-height:1;box-shadow:inset 0 0 0 .5px var(--$-line)}
+.$-pb[data-off=true]{opacity:.35;filter:grayscale(1)}
+.$-pname{display:inline-flex;align-items:center;gap:8px;min-width:0;white-space:nowrap}
+.$-pname>span:last-child{overflow:hidden;text-overflow:ellipsis}
+.$-eng{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+/* 图表：外框、悬停提示、图例 */
+.$-chart{position:relative;min-width:0;width:100%}
+.$-chart svg{display:block;overflow:visible}
+.$-chart text{font-family:var(--$-font);font-size:11px}
+.$-tip{position:absolute;z-index:6;pointer-events:none;min-width:128px;max-width:240px;padding:8px 10px;border-radius:var(--$-r-sm);background:var(--$-raised);box-shadow:var(--$-shadow-3);color:var(--$-text);font-size:12px;line-height:18px;transform:translate(-50%,calc(-100% - 12px));white-space:nowrap}
+.$-tip[data-below=true]{transform:translate(-50%,16px)}
+.$-tip>b{display:block;margin-bottom:4px;font-weight:600}
+.$-tip-row{display:flex;align-items:center;gap:6px}
+.$-tip-row i{flex:none;width:8px;height:8px;border-radius:2px}
+.$-tip-row span:last-child{margin-left:auto;padding-left:16px;font-variant-numeric:tabular-nums;font-weight:500}
+.$-tip-foot{margin-top:4px;padding-top:4px;border-top:.5px solid var(--$-line);color:var(--$-text-2)}
+.$-legend{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;color:var(--$-text-2);font-size:12px;line-height:18px}
+.$-legend>span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.$-legend i{flex:none;width:10px;height:10px;border-radius:3px}
+.$-legend b{color:var(--$-text);font-weight:500;font-variant-numeric:tabular-nums}
+/* 看板外框 */
+.$-sec{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:8px}
+.$-sec-title{margin:0;font-size:17px;line-height:26px;font-weight:600;font-family:var(--$-font-title)}
+.$-duo{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.$-duo-21{grid-template-columns:minmax(0,1.75fr) minmax(0,1fr)}
+.$-kpis{display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr))}
+/* 顶部「今天的局势」 */
+.$-board{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 32px;align-items:center;padding:22px 24px;border-radius:var(--$-r-xl);background:var(--$-card);box-shadow:inset 0 0 0 .5px var(--$-card-line);overflow:hidden}
+.$-board::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(110% 150% at 0% 0%,var(--$-glow) 0%,transparent 62%)}
+.$-board>*{position:relative;min-width:0}
+.$-board[data-level=danger]{--$-glow:color-mix(in srgb,var(--$-danger) 16%,transparent);--$-lv:var(--$-danger)}
+.$-board[data-level=warn]{--$-glow:color-mix(in srgb,var(--$-warn) 16%,transparent);--$-lv:var(--$-warn)}
+.$-board[data-level=ok]{--$-glow:color-mix(in srgb,var(--$-success) 13%,transparent);--$-lv:var(--$-success)}
+.$-board[data-level=idle]{--$-glow:color-mix(in srgb,var(--$-accent) 12%,transparent);--$-lv:var(--$-accent)}
+.$-board-text{display:flex;flex-direction:column;gap:10px}
+.$-level{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;padding:3px 10px 3px 8px;border-radius:999px;corner-shape:round;background:color-mix(in srgb,var(--$-lv) 13%,transparent);color:var(--$-lv);font-size:12px;line-height:18px;font-weight:600}
+.$-headline{margin:0;font-size:30px;line-height:40px;font-weight:600;font-family:var(--$-font-title)}
+.$-headline b{color:var(--$-lv);font-size:40px}
+.$-board-sum{margin:0;max-width:640px;color:var(--$-text-2);font-size:14px;line-height:23px;white-space:pre-wrap}
+.$-board-meta{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--$-text-3);font-size:12px;line-height:18px}
+.$-board-meta>span{display:inline-flex;align-items:center;gap:5px}
+.$-board-foot{grid-column:1/-1;display:flex;flex-direction:column;gap:8px}
+/* 环形图 */
+.$-donut{display:flex;align-items:center;gap:20px}
+.$-donut-ring{position:relative;flex:none}
+.$-donut-ring svg{display:block}
+.$-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.$-donut-center b{font-size:30px;line-height:36px;font-weight:600}
+.$-donut-center span{color:var(--$-text-3);font-size:12px;line-height:16px}
+.$-donut-legend{display:flex;flex-direction:column;gap:6px;min-width:112px;font-size:13px;line-height:20px}
+.$-donut-legend>div{display:grid;grid-template-columns:10px auto 1fr;align-items:center;gap:8px}
+.$-donut-legend i{width:10px;height:10px;border-radius:3px}
+.$-donut-legend b{justify-self:end;font-weight:500;font-variant-numeric:tabular-nums}
+.$-donut-legend small{color:var(--$-text-3);font-size:11px;margin-left:4px;font-weight:400}
+/* 大数字卡 */
+.$-kpi{display:flex;flex-direction:column;gap:4px;min-width:0;padding:14px 16px 10px;border-radius:var(--$-r-lg);background:var(--$-card);box-shadow:inset 0 0 0 .5px var(--$-card-line)}
+.$-kpi-label{display:flex;align-items:center;gap:6px;color:var(--$-text-2);font-size:13px;line-height:20px}
+.$-kpi-label svg{color:var(--$-text-3)}
+.$-kpi-value{display:flex;align-items:baseline;gap:4px;font-size:32px;line-height:40px;font-weight:600;white-space:nowrap;overflow:hidden;font-family:var(--$-font-title)}
+.$-kpi-value small{color:var(--$-text-3);font-size:13px;line-height:20px;font-weight:400}
+.$-kpi[data-tone=danger] .$-kpi-value{color:var(--$-danger)}
+.$-delta{display:inline-flex;align-items:center;gap:3px;min-height:18px;color:var(--$-text-3);font-size:12px;line-height:18px}
+.$-delta[data-tone=bad]{color:var(--$-danger)}
+.$-delta[data-tone=good]{color:var(--$-success)}
+.$-delta[data-tone=flat]{color:var(--$-text-2)}
+.$-kpi-foot{color:var(--$-text-3);font-size:11px;line-height:16px}
+.$-meter{height:6px;border-radius:999px;corner-shape:round;background:color-mix(in srgb,var(--$-neg) 14%,transparent);overflow:hidden;margin:8px 0 6px}
+.$-meter i{display:block;height:100%;border-radius:inherit;background:var(--$-neg)}
+/* 检查进度 */
+.$-prog{border-radius:var(--$-r-xl);background:var(--$-card);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--$-accent) 35%,transparent);padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.$-prog-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.$-prog-pct{margin-left:auto;font-size:22px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums}
+.$-pbar{position:relative;height:10px;border-radius:999px;corner-shape:round;background:var(--$-soft);overflow:hidden}
+.$-pbar i{position:absolute;left:0;top:0;bottom:0;border-radius:inherit;background:var(--$-accent);transition:width .6s ease}
+.$-pbar i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--$-on-strong) 45%,transparent),transparent);animation:$-shine 1.6s linear infinite}
+@keyframes $-shine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.$-phases{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;line-height:20px;color:var(--$-text-3)}
+.$-phases>span{display:inline-flex;align-items:center;gap:6px}
+.$-phases i{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;corner-shape:round;box-shadow:inset 0 0 0 1px currentColor;font-style:normal;font-size:10px}
+.$-phases [data-state=doing]{color:var(--$-text);font-weight:500}
+.$-phases [data-state=doing] i{box-shadow:none;background:var(--$-accent);color:var(--$-on-strong)}
+.$-phases [data-state=done]{color:var(--$-success)}
+.$-phases [data-state=done] i{box-shadow:none;background:color-mix(in srgb,var(--$-success) 16%,transparent)}
+.$-lights{display:flex;flex-wrap:wrap;gap:6px}
+.$-light{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 4px;border-radius:999px;corner-shape:round;background:var(--$-soft);color:var(--$-text-2);font-size:12px;line-height:18px;white-space:nowrap}
+.$-light small{color:var(--$-text-3);font-size:11px}
+.$-light[data-state=todo]{opacity:.5}
+.$-light[data-state=doing]{background:color-mix(in srgb,var(--$-accent) 12%,transparent);color:var(--$-text);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--$-accent) 50%,transparent);animation:$-pulse 1.4s ease-in-out infinite}
+.$-light[data-tone=ok]{background:color-mix(in srgb,var(--$-success) 12%,transparent);color:var(--$-text)}
+.$-light[data-tone=warn]{background:color-mix(in srgb,var(--$-warn) 14%,transparent);color:var(--$-text)}
+.$-light[data-tone=danger]{background:color-mix(in srgb,var(--$-danger) 12%,transparent);color:var(--$-text)}
+.$-light[data-tone=ok] small{color:var(--$-success)}.$-light[data-tone=warn] small{color:var(--$-warn)}.$-light[data-tone=danger] small{color:var(--$-danger)}
+@keyframes $-pulse{0%,100%{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--$-accent) 50%,transparent),0 0 0 0 color-mix(in srgb,var(--$-accent) 30%,transparent)}50%{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--$-accent) 50%,transparent),0 0 0 5px transparent}}
+.$-counters{display:flex;flex-wrap:wrap;gap:8px 24px}
+.$-counters>div{display:flex;flex-direction:column}
+.$-counters b{font-size:20px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums}
+.$-counters span{color:var(--$-text-3);font-size:12px;line-height:18px}
+/* 平台分布 */
+.$-prows{display:flex;flex-direction:column;gap:2px}
+.$-prow{display:grid;grid-template-columns:minmax(84px,120px) minmax(0,1fr) minmax(56px,auto);align-items:center;gap:12px;width:100%;padding:7px 8px;border:0;border-radius:var(--$-r-md);background:none;color:inherit;font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:pointer}
+.$-prow:disabled{cursor:default}
+.$-stackbar{display:flex;gap:2px;height:10px;min-width:0}
+.$-stackbar span{display:block;flex:none;height:100%;border-radius:var(--$-r-xs)}
+.$-pnum{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.$-pnum small{display:block;color:var(--$-text-3);font-size:11px;line-height:15px}
+.$-pnone{display:flex;align-items:center;gap:6px;min-width:0;color:var(--$-text-3);font-size:12px;line-height:18px}
+/* 负面在骂什么 */
+.$-sevbar{display:flex;gap:2px;height:28px}
+.$-sevbar span{display:flex;align-items:center;flex:none;min-width:4px;padding:0 8px;border-radius:var(--$-r-xs);font-size:12px;line-height:18px;font-weight:600;white-space:nowrap}
+.$-arows{display:flex;flex-direction:column;gap:2px}
+.$-arow{display:grid;grid-template-columns:minmax(44px,76px) minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;padding:4px 6px;border:0;border-radius:var(--$-r-sm);background:none;color:inherit;font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:pointer}
+.$-arow>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.$-sub-title{margin:0;color:var(--$-text-2);font-size:12px;line-height:18px;font-weight:500}
+.$-calm{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:140px;color:var(--$-text-2);font-size:13px;text-align:center}
+.$-calm svg{color:var(--$-success)}
+/* 高频词 */
+.$-cloud{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0}
+.$-word{display:inline-flex;align-items:baseline;gap:4px;padding:2px 12px;border:0;border-radius:999px;corner-shape:round;background:color-mix(in srgb,var(--$-neg) var(--a,8%),transparent);color:var(--$-text);font:inherit;line-height:1.5;cursor:pointer;white-space:nowrap}
+.$-word small{color:var(--$-text-3);font-size:11px;font-weight:400;font-variant-numeric:tabular-nums}
+/* 最该看的几条 */
+.$-worst{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))}
+.$-wcard{position:relative;display:flex;flex-direction:column;gap:8px;min-width:0;padding:14px 16px 12px 20px;border:0;border-radius:var(--$-r-lg);background:var(--$-card);box-shadow:inset 0 0 0 .5px var(--$-card-line);color:inherit;font:inherit;text-align:left;cursor:pointer;overflow:hidden;transition:box-shadow 120ms ease,transform 120ms ease}
+.$-wcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.$-wtop{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px}
+.$-wrank{margin-left:auto;color:var(--$-text-3);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.$-wreason{font-size:15px;line-height:22px;font-weight:600}
+.$-wfoot{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-top:auto;padding-top:4px;color:var(--$-text-3);font-size:12px;line-height:18px}
+/* 全部评论：筛选和列表 */
+.$-frow{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px 12px;align-items:start}
+.$-flabel{padding-top:5px;color:var(--$-text-3);font-size:12px;line-height:20px;white-space:nowrap}
+.$-chips{display:flex;flex-wrap:wrap;gap:6px}
+.$-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 10px;border:0;border-radius:999px;corner-shape:round;background:var(--$-soft);color:var(--$-text-2);font:inherit;font-size:13px;line-height:20px;white-space:nowrap;cursor:pointer}
+.$-chip>i{flex:none;width:8px;height:8px;border-radius:50%;corner-shape:round}
+.$-chip b{color:var(--$-text);font-weight:600;font-variant-numeric:tabular-nums}
+.$-chip small{color:var(--$-danger);font-size:11px;font-variant-numeric:tabular-nums}
+.$-chip[data-empty=true]{opacity:.5}
+.$-chip[aria-pressed=true]{background:var(--$-text);color:var(--$-bg)}
+.$-chip[aria-pressed=true] b{color:var(--$-bg)}
+.$-chip-x{padding-right:6px}
+.$-mix{display:flex;gap:2px;height:8px;border-radius:999px;overflow:hidden}
+.$-mix span{display:block;min-width:2px;height:100%}
+.$-items{display:flex;flex-direction:column}
+.$-irow{position:relative;display:grid;grid-template-columns:84px minmax(0,1fr) minmax(150px,220px);gap:6px 16px;width:100%;padding:12px 8px 12px 18px;border:0;border-bottom:.5px solid var(--$-line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.$-irow:last-child{border-bottom:0}
+.$-irow::before{content:"";position:absolute;left:4px;top:14px;bottom:14px;width:3px;border-radius:2px;background:var(--c)}
+.$-irow-sent,.$-irow-main{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.$-irow-main b{font-size:14px;line-height:22px;font-weight:600}
+.$-irow-meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:0;color:var(--$-text-3);font-size:12px;line-height:18px;text-align:right}
+.$-irow-line{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:2px 10px;max-width:100%}
+.$-irow-line>span{white-space:nowrap}
+/* 设置页：一个监控对象一行 */
 .$-target{display:grid;grid-template-columns:minmax(120px,1fr) minmax(160px,2fr) auto;gap:8px;align-items:center}
-@container $-shell (max-width:560px){.$-target{grid-template-columns:minmax(0,1fr)}.$-cols{gap:2px}.$-col-d{display:none}}
+/* 第一次打开 */
+.$-welcome{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px 40px;align-items:center}
+.$-eyebrow{margin:0;color:var(--$-accent);font-size:13px;line-height:20px;font-weight:600}
+.$-welcome-title{margin:0;font-size:28px;line-height:38px;font-weight:600;font-family:var(--$-font-title)}
+.$-howto{display:flex;flex-direction:column;gap:12px;margin:0;padding:0;list-style:none}
+.$-howto li{display:flex;gap:12px;align-items:flex-start;font-size:13px;line-height:20px;color:var(--$-text-2)}
+.$-howto li>i{flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;corner-shape:round;background:color-mix(in srgb,var(--$-accent) 14%,transparent);color:var(--$-accent);font-style:normal;font-size:12px;font-weight:600}
+.$-howto b{display:block;color:var(--$-text);font-size:14px;font-weight:500}
+.$-radar{position:relative;width:min(300px,100%);aspect-ratio:1;margin:0 auto}
+.$-radar svg{position:absolute;inset:0;width:100%;height:100%}
+.$-sweep{position:absolute;inset:0;border-radius:50%;corner-shape:round;background:conic-gradient(from 0deg,color-mix(in srgb,var(--$-accent) 30%,transparent),transparent 22%,transparent);animation:$-spin 5s linear infinite}
+.$-blip{position:absolute;transform:translate(-50%,-50%);animation:$-blink 5s ease-in-out infinite}
+@keyframes $-blink{0%,100%{opacity:.55}50%{opacity:1}}
+.$-radar-dot{position:absolute;left:50%;top:50%;width:12px;height:12px;border-radius:50%;corner-shape:round;background:var(--$-accent);transform:translate(-50%,-50%);box-shadow:0 0 0 6px color-mix(in srgb,var(--$-accent) 18%,transparent)}
+@media (hover:hover){
+.$-prow:hover:not(:disabled),.$-arow:hover{background:var(--$-soft)}
+.$-wcard:hover{box-shadow:inset 0 0 0 .5px var(--$-card-line),var(--$-shadow-2);transform:translateY(-1px)}
+.$-irow:hover{background:var(--$-soft)}
+.$-chip:hover:not([aria-pressed=true]){color:var(--$-text)}
+.$-word:hover{background:color-mix(in srgb,var(--$-neg) calc(var(--a,8%) + 10%),transparent)}
+}
+@media (prefers-reduced-motion:reduce){.$-sweep,.$-blip,.$-light[data-state=doing],.$-pbar i::after{animation:none}.$-wcard{transition:none}}
+@container $-shell (max-width:1080px){
+.$-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.$-duo,.$-duo-21{grid-template-columns:minmax(0,1fr)}
+}
+@container $-shell (max-width:900px){
+.$-board{grid-template-columns:minmax(0,1fr);padding:18px}
+.$-welcome{grid-template-columns:minmax(0,1fr)}
+.$-radar{width:min(220px,100%)}
+}
+@container $-shell (max-width:760px){
+.$-irow{grid-template-columns:72px minmax(0,1fr)}
+.$-irow-meta{grid-column:2;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 12px;text-align:left}
+.$-irow-line{justify-content:flex-start}
+.$-headline{font-size:24px;line-height:34px}.$-headline b{font-size:32px}
+}
+@container $-shell (max-width:560px){
+.$-target{grid-template-columns:minmax(0,1fr)}
+.$-kpis{grid-template-columns:minmax(0,1fr)}
+.$-donut{flex-wrap:wrap}
+.$-prow{grid-template-columns:minmax(72px,96px) minmax(0,1fr) auto;gap:8px}
+}
 `
 
     // ---- 几个对照表
     const PLAT = { weibo: '微博', bilibili: 'B 站', zhihu: '知乎', xhs: '小红书', douyin: '抖音', wechat: '公众号', news: '新闻资讯' }
+    /** 平台小方块上的字。 */
+    const PLAT_GLYPH = { weibo: '微', bilibili: 'B', zhihu: '知', xhs: '红', douyin: '抖', wechat: '公', news: '新' }
     const SENT = { neg: ['在骂', 'danger'], neu: ['中性', undefined], pos: ['夸', 'success'], unrelated: ['无关', 'outline'], unknown: ['没判断', 'warn'] }
     const LINK_STATUS = {
       ok: ['免费可用', 'success'], ready: ['已登录', 'success'], login: ['需要登录', 'warn'], waiting: ['等你登录', 'warn'], expired: ['登录过期', 'danger'],
       captcha: ['被验证码挡住', 'danger'], blocked: ['暂时拿不到', undefined], error: ['出错了', 'danger'], unknown: ['还没检查', 'outline'],
     }
+    /** 这几种状态算「没连上」：要登录、等登录、过期、被验证码挡住。 */
+    const NEED_CONNECT = ['login', 'waiting', 'expired', 'captcha']
     const VIA = { free: '免费接口', browser: '浏览器窗口', paid: '付费接口' }
+    const SEV_LABEL = { 1: '轻微吐槽', 2: '明确不满', 3: '严重' }
+    /** 外观段的颜色变量（页面 JS 里写颜色都走它）：v('neg') → var(--rr-neg) */
+    const v = name => `var(--${P}-${name})`
+    const sevColor = n => v(`sev-${Math.min(3, Math.max(1, Number(n) || 1))}`)
+    const SENT_COLOR = { neg: v('neg'), neu: v('neu'), pos: v('pos'), unknown: v('unk'), unrelated: v('line-2') }
+    const sentColor = (s, sev) => (s === 'neg' ? sevColor(sev) : SENT_COLOR[s] ?? v('line-2'))
+    /** 情绪走势图里一根柱子从下往上叠的三层。 */
+    const STACK = [{ key: 'neg', label: '骂', color: v('neg') }, { key: 'neu', label: '中性', color: v('neu') }, { key: 'pos', label: '夸', color: v('pos') }]
+
     const SentTag = ({ value }) => h(Tag, { tone: SENT[value]?.[1] }, SENT[value]?.[0] ?? value)
     const LinkTag = ({ value }) => h(Tag, { tone: LINK_STATUS[value]?.[1] }, LINK_STATUS[value]?.[0] ?? value)
-    /** 严重程度：三格，亮几格就是几级。 */
-    const Sev = ({ n }) => h('span', { className: cls('sev'), title: `严重程度 ${n} / 3`, 'aria-label': `严重程度 ${n} / 3` }, [1, 2, 3].map(i => h('i', { key: i, 'data-on': i <= n })))
+    /** 严重程度：三根从矮到高的小条，亮几根就是几级；label 写 true 时后面跟一句「明确不满」这样的字。 */
+    const Sev = ({ n, label }) => h('span', { className: cls('sev'), title: `严重程度 ${n} / 3：${SEV_LABEL[n] ?? ''}`, role: 'img', 'aria-label': `严重程度 ${n} / 3` },
+      h('span', { className: cls('sev-bars') }, [1, 2, 3].map(i => h('i', { key: i, style: i <= n ? { background: sevColor(n) } : undefined }))),
+      label ? h('span', { className: cls('sev-text') }, SEV_LABEL[n]) : null)
+    /** 平台小方块 + 名字。 */
+    const PlatBadge = ({ k, size = 20, off }) => h('span', { className: cls('pb'), 'data-off': off || undefined, style: { '--s': `${size}px`, background: v(`p-${k}`) }, 'aria-hidden': true }, PLAT_GLYPH[k] ?? '·')
+    const PlatName = ({ k, size, off }) => h('span', { className: cls('pname') }, h(PlatBadge, { k, size, off }), h('span', null, PLAT[k] ?? k))
     const two = n => String(n).padStart(2, '0')
     const fmtTime = iso => { if (!iso) return ''; const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : `${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}` }
+    const fmtDay = date => `${date.slice(5)} 周${'日一二三四五六'[new Date(`${date}T00:00:00`).getDay()]}`
+    const fmtNum = n => (n >= 10000 ? `${(n / 10000).toFixed(n >= 100000 ? 0 : 1)} 万` : String(n))
+    const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0)
     const splitWords = text => String(text ?? '').split(/[,，、\n]/).map(x => x.trim()).filter(Boolean)
+    /** 点赞、评论、转发（有数才显示）。 */
+    const Eng = ({ r }) => [['heart', r.likes, '点赞'], ['chat', r.comments, '评论'], ['share', r.shares, '转发']].filter(([, n]) => Number(n) > 0)
+      .map(([icon, n, label]) => h('span', { key: icon, className: cls('eng'), title: `${label} ${n}` }, h(Icon, { name: icon, size: 13 }), fmtNum(Number(n))))
 
     /** 今天骂你的条数，给左边导航上的红色数字用。 */
     const negToday = makeStore(0)
+    /** 从看板点进「全部评论」时带过去的筛选（点了某个平台、某个词、某个方面）。 */
+    const listPreset = makeStore(null)
+    const openList = preset => { listPreset.set(preset); route.set('list') }
+
+    // ---- 画图用的小工具（不引外部图表库，全用 SVG 自己画）
+
+    /**
+     * 图表外框：量自己有多宽（窗口变了会重画），管悬停提示。
+     *   const c = useChart()；h('div', { ref: c.ref, className: cls('chart') }, …图…, c.tipNode)
+     *   图上的东西：onMouseMove: e => c.show(e, 提示内容), onMouseLeave: c.hide
+     */
+    function useChart() {
+      const ref = useRef(null)
+      const [w, setW] = useState(0)
+      const [tip, setTip] = useState(null)
+      useLayoutEffect(() => {
+        const el = ref.current
+        if (!el) return undefined
+        setW(el.clientWidth)
+        if (typeof ResizeObserver === 'undefined') return undefined
+        const ro = new ResizeObserver(entries => setW(Math.round(entries[0].contentRect.width)))
+        ro.observe(el)
+        return () => ro.disconnect()
+      }, [])
+      const show = (e, body) => {
+        const r = ref.current?.getBoundingClientRect()
+        if (!r) return
+        // 键盘聚焦时没有鼠标位置，就放在那个东西的正上方
+        const box = e.clientX === undefined ? e.currentTarget.getBoundingClientRect() : null
+        const x = box ? box.left + box.width / 2 - r.left : e.clientX - r.left
+        const y = box ? box.top - r.top : e.clientY - r.top
+        setTip({ x, y, w: r.width, body })
+      }
+      const hide = () => setTip(null)
+      const tipNode = tip ? h('div', { className: cls('tip'), role: 'tooltip', 'data-below': tip.y < 72 || undefined, style: { left: Math.max(0, Math.min(Math.max(tip.x, 80), tip.w - 80)), top: tip.y } }, tip.body) : null
+      return { ref, w, show, hide, tipNode }
+    }
+    /** 提示框里的内容：标题、几行「色块 名字 数字」、最下面一行说明。 */
+    const TipBody = ({ title, rows = [], foot }) => h(Fragment, null, h('b', null, title),
+      rows.map(r => h('div', { key: r.label, className: cls('tip-row') }, r.color ? h('i', { style: { background: r.color } }) : null, h('span', null, r.label), h('span', null, r.value))),
+      foot ? h('div', { className: cls('tip-foot') }, foot) : null)
+    /** 纵轴取整：最大 7 → 0 2 4 6 8。 */
+    function niceScale(max, count = 4) {
+      if (!(max > 0)) return { top: count, ticks: Array.from({ length: count + 1 }, (_, i) => i) }
+      const raw = max / count
+      const mag = 10 ** Math.floor(Math.log10(raw))
+      const step = Math.max(1, [1, 2, 5, 10].map(m => m * mag).find(s => s >= raw))
+      const top = Math.ceil(max / step) * step
+      const ticks = []
+      for (let x = 0; x <= top + 1e-9; x += step) ticks.push(Math.round(x))
+      return { top, ticks }
+    }
+    /** 柱子：上面两个角是圆的，底下是方的。 */
+    const colPath = (x, y, w, hh, r) => {
+      const k = Math.min(r, w / 2, hh)
+      return `M${x},${y + hh}V${y + k}Q${x},${y} ${x + k},${y}H${x + w - k}Q${x + w},${y} ${x + w},${y + k}V${y + hh}Z`
+    }
+    const Legend = ({ items }) => h('div', { className: cls('legend') }, items.map(it => h('span', { key: it.label }, h('i', { style: { background: it.color } }), it.label, it.value !== undefined ? h('b', null, it.value) : null)))
+
+    /**
+     * 每天一根的堆叠柱：从下往上是 骂 / 中性 / 夸。没检查过的日子在底下画一个小点。
+     * series: [{ date, neg, neu, pos, unknown, checked }]；compact 是「全部评论」上面那个矮的。
+     */
+    function StackColumns({ series, height = 220, compact, today, label }) {
+      const c = useChart()
+      const [hover, setHover] = useState(-1)
+      const W = c.w
+      const n = series.length
+      const padL = compact ? 2 : 30
+      const padR = 2
+      const padT = 8
+      const padB = compact ? 18 : 24
+      const plotW = Math.max(1, W - padL - padR)
+      const plotH = height - padT - padB
+      const sum = s => STACK.reduce((a, k) => a + (s[k.key] || 0), 0)
+      const { top, ticks } = niceScale(Math.max(0, ...series.map(sum)), compact ? 2 : 4)
+      const slot = plotW / Math.max(1, n)
+      const bw = Math.max(2, Math.min(24, slot * 0.62))
+      const y = val => padT + plotH - (val / top) * plotH
+      const every = Math.max(1, Math.ceil(n / Math.max(1, Math.floor(plotW / 48))))
+      const tipOf = s => h(TipBody, {
+        title: s.date === today ? `今天（${fmtDay(s.date)}）` : fmtDay(s.date),
+        rows: s.checked === false ? [] : [...STACK.map(k => ({ label: k.label, value: s[k.key] || 0, color: k.color })), ...(s.unknown ? [{ label: '没判断', value: s.unknown, color: v('unk') }] : [])],
+        foot: s.checked === false ? '这天没检查' : sum(s) ? `负面占比 ${pct(s.neg, sum(s))}%` : '这天没发现提到你的',
+      })
+      const svg = W ? h('svg', { width: W, height, role: 'img', 'aria-label': label },
+        // 横线和左边的刻度
+        ticks.map(tk => h('g', { key: `t${tk}` },
+          (!compact || tk === 0) ? h('line', { x1: padL, x2: W - padR, y1: y(tk), y2: y(tk), style: { stroke: tk === 0 ? v('line-2') : v('line') }, strokeWidth: 1 }) : null,
+          !compact ? h('text', { x: padL - 8, y: y(tk) + 4, textAnchor: 'end', style: { fill: v('text-3') } }, tk) : null)),
+        series.map((s, i) => {
+          const cx = padL + i * slot + slot / 2
+          const x0 = cx - bw / 2
+          let base = padT + plotH
+          const total = sum(s)
+          const segs = STACK.filter(k => s[k.key] > 0)
+          return h('g', { key: s.date },
+            hover === i ? h('rect', { x: padL + i * slot, y: padT, width: slot, height: plotH, style: { fill: v('soft') }, rx: 4 }) : null,
+            s.checked === false ? h('circle', { cx, cy: padT + plotH - 4, r: 2, style: { fill: v('line-2') } }) : null,
+            segs.map((k, j) => {
+              const hh = (s[k.key] / top) * plotH
+              const last = j === segs.length - 1
+              const drawn = last ? hh : Math.max(1, hh - 2) // 两层之间留 2px 缝
+              const yy = base - hh
+              base -= hh
+              return last
+                ? h('path', { key: k.key, d: colPath(x0, yy, bw, drawn, Math.min(4, bw / 2)), style: { fill: k.color } })
+                : h('rect', { key: k.key, x: x0, y: yy + (hh - drawn), width: bw, height: drawn, style: { fill: k.color } })
+            }),
+            // 日期：放得下几个放几个，今天一定写
+            (i % every === (n - 1) % every || i === n - 1) ? h('text', { x: cx, y: height - 6, textAnchor: 'middle', style: { fill: s.date === today ? v('text') : v('text-3'), fontWeight: s.date === today ? 600 : 400 } }, s.date === today ? '今天' : s.date.slice(5)) : null)
+        }),
+        // 鼠标停上去的感应区：整列都算
+        series.map((s, i) => h('rect', {
+          key: `hit${s.date}`, x: padL + i * slot, y: padT, width: slot, height: plotH + padB, style: { fill: 'transparent' },
+          onMouseMove: e => { setHover(i); c.show(e, tipOf(s)) }, onMouseLeave: () => { setHover(-1); c.hide() },
+        }))) : null
+      return h('div', { ref: c.ref, className: cls('chart'), style: { height } }, svg, c.tipNode)
+    }
+
+    /** 迷你走势线：灰线 + 淡淡的底色，最后一天是彩色的点。没检查过的日子线断开。 */
+    function Spark({ points, color, unit = '', height = 36 }) {
+      const c = useChart()
+      const W = c.w
+      const vals = points.map(p => p.value).filter(x => x !== null && x !== undefined)
+      const max = Math.max(1, ...vals)
+      const x = i => 4 + (i / Math.max(1, points.length - 1)) * Math.max(1, W - 8)
+      const y = val => 4 + (height - 8) * (1 - val / max)
+      const runs = []
+      let cur = []
+      points.forEach((p, i) => {
+        if (p.value === null || p.value === undefined) { if (cur.length) runs.push(cur); cur = [] } else cur.push([x(i), y(p.value)])
+      })
+      if (cur.length) runs.push(cur)
+      const last = points.length - 1
+      const lastVal = points[last]?.value
+      const slot = Math.max(1, W / Math.max(1, points.length))
+      return h('div', { ref: c.ref, className: cls('chart'), style: { height } }, W ? h('svg', { width: W, height, 'aria-hidden': true },
+        runs.map((r, i) => h('g', { key: i },
+          r.length > 1 ? h('path', { d: `M${r[0][0]},${height}${r.map(([a, b]) => `L${a},${b}`).join('')}L${r.at(-1)[0]},${height}Z`, style: { fill: color, fillOpacity: 0.1 } }) : null,
+          h('path', { d: r.map(([a, b], j) => `${j ? 'L' : 'M'}${a},${b}`).join(''), style: { stroke: v('text-3'), fill: 'none' }, strokeWidth: 1.5, strokeLinejoin: 'round', strokeLinecap: 'round' }))),
+        lastVal !== null && lastVal !== undefined ? h('circle', { cx: x(last), cy: y(lastVal), r: 4, style: { fill: color, stroke: v('card') }, strokeWidth: 2 }) : null,
+        points.map((p, i) => h('rect', { key: p.date, x: x(i) - slot / 2, y: 0, width: slot, height, style: { fill: 'transparent' }, onMouseMove: e => c.show(e, h(TipBody, { title: fmtDay(p.date), foot: p.value === null || p.value === undefined ? '这天没检查' : `${p.value}${unit}` })), onMouseLeave: c.hide }))) : null, c.tipNode)
+    }
+
+    /** 环形图：parts = [{ key, label, value, color }]，中间写一个大数字。 */
+    function Donut({ parts, size = 148, thick = 16, center, sub }) {
+      const c = useChart()
+      const total = parts.reduce((a, p) => a + p.value, 0)
+      const r = (size - thick) / 2
+      const C = 2 * Math.PI * r
+      const nonzero = parts.filter(p => p.value > 0)
+      const gap = nonzero.length > 1 ? 2 : 0
+      let acc = 0
+      return h('div', { className: cls('donut') },
+        h('div', { ref: c.ref, className: cls('donut-ring', 'chart'), style: { width: size, height: size } },
+          h('svg', { width: size, height: size, role: 'img', 'aria-label': `${sub}：${parts.map(p => `${p.label} ${p.value}`).join('，')}` },
+            h('g', { transform: `rotate(-90 ${size / 2} ${size / 2})` },
+              h('circle', { cx: size / 2, cy: size / 2, r, style: { fill: 'none', stroke: v('soft') }, strokeWidth: thick }),
+              nonzero.map(p => {
+                const len = (p.value / total) * C
+                const dash = Math.max(0.5, len - gap)
+                const el = h('circle', {
+                  key: p.key, cx: size / 2, cy: size / 2, r, strokeWidth: thick, strokeDasharray: `${dash} ${C - dash}`, strokeDashoffset: -acc, style: { fill: 'none', stroke: p.color },
+                  onMouseMove: e => c.show(e, h(TipBody, { title: p.label, rows: [{ label: '条数', value: p.value, color: p.color }], foot: `占 ${pct(p.value, total)}%` })), onMouseLeave: c.hide,
+                })
+                acc += len
+                return el
+              }))),
+          h('div', { className: cls('donut-center') }, h('b', null, center ?? total), h('span', null, sub)),
+          c.tipNode),
+        h('div', { className: cls('donut-legend') }, parts.map(p => h('div', { key: p.key }, h('i', { style: { background: p.color } }), h('span', null, p.label), h('b', null, p.value, total ? h('small', null, `${pct(p.value, total)}%`) : null)))))
+    }
+
+    /** 和前 7 天平均比：多了、少了、差不多。upIsBad：多了算坏事（骂的条数）。 */
+    function deltaOf(cur, prev, { unit = ' 条', upIsBad = false, neutral = false } = {}) {
+      if (cur === null || cur === undefined) return { tone: 'none', text: '今天还没数据' }
+      if (prev === null || prev === undefined) return { tone: 'none', text: '前几天没数据，先不比' }
+      const diff = Math.round((cur - prev) * 10) / 10
+      if (Math.abs(diff) < 0.1 || (prev > 0 && Math.abs(diff) / prev < 0.05)) return { tone: 'flat', text: `和前 7 天平均差不多（${prev}${unit}）` }
+      const up = diff > 0
+      return { tone: neutral ? 'flat' : up === upIsBad ? 'bad' : 'good', icon: up ? 'arrowUp' : 'arrowDown', text: `比前 7 天平均${up ? '多' : '少'} ${Math.abs(diff)}${unit}` }
+    }
+    /** 一张大数字卡：名字、数字、和前几天比、迷你走势线。 */
+    const Kpi = ({ icon, label, value, unit, delta, tone, children, foot }) => h('div', { className: cls('kpi'), 'data-tone': tone },
+      h('span', { className: cls('kpi-label') }, h(Icon, { name: icon, size: 15 }), label),
+      h('span', { className: cls('kpi-value') }, value, unit ? h('small', null, unit) : null),
+      delta ? h('span', { className: cls('delta'), 'data-tone': delta.tone }, delta.icon ? h(Icon, { name: delta.icon, size: 13 }) : null, delta.text) : null,
+      children,
+      foot ? h('span', { className: cls('kpi-foot') }, foot) : null)
 
     // ---- 第一次打开：先填监控对象
+    /** 雷达动画：一圈圈的线，扫过去，七个平台在上面一闪一闪。 */
+    function RadarArt() {
+      const keys = Object.keys(PLAT)
+      return h('div', { className: cls('radar'), 'aria-hidden': true },
+        h('svg', { viewBox: '0 0 100 100' },
+          [48, 34, 20].map(rr => h('circle', { key: rr, cx: 50, cy: 50, r: rr, style: { fill: 'none', stroke: v('line-2') }, strokeWidth: 0.4 })),
+          h('line', { x1: 2, x2: 98, y1: 50, y2: 50, style: { stroke: v('line') }, strokeWidth: 0.4 }),
+          h('line', { x1: 50, x2: 50, y1: 2, y2: 98, style: { stroke: v('line') }, strokeWidth: 0.4 })),
+        h('div', { className: cls('sweep') }),
+        h('span', { className: cls('radar-dot') }),
+        keys.map((k, i) => {
+          const a = (i / keys.length) * Math.PI * 2 - Math.PI / 2
+          const rr = i % 2 ? 26 : 40
+          return h('span', { key: k, className: cls('blip'), style: { left: `${50 + rr * Math.cos(a)}%`, top: `${50 + rr * Math.sin(a)}%`, animationDelay: `${(i / keys.length) * 5}s` } }, h(PlatBadge, { k, size: 26 }))
+        }))
+    }
+
     function Onboarding({ onDone }) {
       const [name, setName] = useState('')
       const [keywords, setKeywords] = useState('')
@@ -981,11 +1429,21 @@ select.$-input{cursor:pointer}
         toast('记下了，先查一次')
         onDone()
       })
-      return h(Page, { title: '先告诉我要盯谁', sub: '一个品牌、一个账号或一个人都行。之后每天会去微博、B 站、知乎、小红书、抖音、公众号和新闻里找提到它的内容，看看有没有人在骂。' },
-        h(Card, null,
-          h(Field, { label: '名称', hint: '最常用的叫法，比如品牌名、账号名、你的名字', error: error?.message }, h(Input, { value: name, onChange: setName, placeholder: '比如：庞巴迪', autoFocus: true })),
-          h(Field, { label: '别名、产品名（可以不填）', hint: '用逗号隔开，比如：Can-Am，Spyder，Ryker' }, h(Input, { value: keywords, onChange: setKeywords, placeholder: '别名1，别名2' })),
-          h(Row, null, h(Btn, { kind: 'primary', busy, disabled: !name.trim(), onClick: save }, '保存，开始盯'), h('span', { className: cls('faint') }, '以后在「设置」里还能改、能再加几个'))))
+      return h(Page, { width: 1080 },
+        h('div', { className: cls('welcome') },
+          h('div', { className: cls('stack') },
+            h('p', { className: cls('eyebrow') }, '口碑雷达'),
+            h('h1', { className: cls('welcome-title') }, '先告诉我要盯谁'),
+            h('p', { className: cls('muted') }, '一个品牌、一个账号或一个人都行。之后每天会去微博、B 站、知乎、小红书、抖音、公众号和新闻里找提到它的内容，看看有没有人在骂。'),
+            h(Card, null,
+              h(Field, { label: '名称', hint: '最常用的叫法，比如品牌名、账号名、你的名字', error: error?.message }, h(Input, { value: name, onChange: setName, placeholder: '比如：庞巴迪', autoFocus: true, onKeyDown: e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing && name.trim()) save() } })),
+              h(Field, { label: '别名、产品名（可以不填）', hint: '用逗号隔开，比如：Can-Am，Spyder，Ryker' }, h(Input, { value: keywords, onChange: setKeywords, placeholder: '别名1，别名2' })),
+              h(Row, null, h(Btn, { kind: 'primary', lg: true, icon: 'radar', busy, disabled: !name.trim(), onClick: save }, '保存，开始盯'), h('span', { className: cls('faint') }, '以后在「设置」里还能改、能再加几个'))),
+            h('ol', { className: cls('howto') },
+              h('li', null, h('i', null, '1'), h('div', null, h('b', null, '全网找'), '七个平台挨个搜你的名字和别名，帖子下面的评论也会看。')),
+              h('li', null, h('i', null, '2'), h('div', null, h('b', null, '模型判断'), '用 DSH 里配好的模型，一条条看是在骂、中性还是夸，骂的是哪方面、有多严重。')),
+              h('li', null, h('i', null, '3'), h('div', null, h('b', null, '每天看一眼'), '「今天」页一眼看懂局势：骂的多不多、在哪骂、骂什么，最该看的几条放在最前面。')))),
+          h('div', { className: cls('stack') }, h(RadarArt), h('div', { className: cls('chips'), style: { justifyContent: 'center' } }, Object.keys(PLAT).map(k => h('span', { key: k, className: cls('light') }, h(PlatBadge, { k, size: 20 }), PLAT[k]))))))
     }
 
     // ---- 看一条的原文，顺手改「判错了」
@@ -999,8 +1457,8 @@ select.$-input{cursor:pointer}
         one.reload()
         onChanged?.()
       })
-      const head = it ? h(Stack, null, h('h2', { className: cls('modal-title') }, `${PLAT[it.platform]}${it.kind === 'comment' ? '评论' : '帖子'}`),
-        h(Row, null, h(SentTag, { value: it.sentiment }), it.sentiment === 'neg' ? h(Sev, { n: it.severity }) : null, it.aspect ? h(Tag, { tone: 'outline' }, it.aspect) : null, it.manual ? h(Tag, { tone: 'info' }, '你改过') : null)) : null
+      const head = it ? h(Stack, null, h('h2', { className: cls('modal-title') }, h(PlatName, { k: it.platform, size: 22 }), h('span', { className: cls('faint') }, it.kind === 'comment' ? ' · 评论' : ' · 帖子')),
+        h(Row, null, h(SentTag, { value: it.sentiment }), it.sentiment === 'neg' ? h(Sev, { n: it.severity, label: true }) : null, it.aspect ? h(Tag, { tone: 'outline' }, it.aspect) : null, it.manual ? h(Tag, { tone: 'info' }, '你改过') : null)) : null
       return h(Drawer, { title: '原文', head, onClose, width: 480 },
         one.error ? h(ErrorBox, { error: one.error, onRetry: one.reload }) : !it ? h(Loading) : h(Fragment, null,
           it.reason ? h(Alert, { tone: it.sentiment === 'neg' ? 'danger' : undefined }, `模型说：${it.reason}`) : null,
@@ -1019,34 +1477,190 @@ select.$-input{cursor:pointer}
           it.manual ? h(Row, null, h(Btn, { sm: true, kind: 'ghost', disabled: busy, onClick: () => fix(null) }, '改回模型的判断')) : null))
     }
 
-    // ---- 检查进度
-    function ProgressCard({ p }) {
+    // ---- 检查进度：进度条、三个阶段、各平台逐个点亮
+    const lightTone = st => (['ok', 'ready'].includes(st) ? 'ok' : ['login', 'waiting', 'expired'].includes(st) ? 'warn' : ['captcha', 'error'].includes(st) ? 'danger' : undefined)
+    function ProgressPanel({ p }) {
+      const plats = p.plats ?? []
+      const total = p.platformsTotal || plats.length
+      const searching = !total || p.platformsDone < total
+      const writing = /日报/.test(p.step ?? '')
+      const percent = !total ? 3 : searching ? 4 + (66 * (p.platformsDone + (p.platform ? 0.5 : 0))) / total : writing ? 96 : p.toJudge ? 70 + (25 * (p.judged ?? 0)) / p.toJudge : 92
+      const phase = searching ? 0 : writing ? 2 : 1
       const where = p.platform ? PLAT[p.platform] : ''
-      return h(Card, { title: h(Fragment, null, h(Spin), ' 正在检查'), note: p.platformsTotal ? `平台 ${Math.min(p.platformsDone + 1, p.platformsTotal)} / ${p.platformsTotal}` : '' },
-        h('p', { className: cls('muted') }, p.step || (where ? `正在搜${where}` : '准备中')),
-        h(Row, null, h(Tag, null, `搜到 ${p.found ?? 0} 条`), h(Tag, { tone: 'info' }, `新的 ${p.fresh ?? 0} 条`), p.toJudge ? h(Tag, { tone: 'warn' }, `判断 ${p.judged ?? 0} / ${p.toJudge}`) : null),
-        h('p', { className: cls('faint') }, '小红书、抖音、微博、知乎会在插件自己的 Chrome 窗口里打开页面看，别关那个窗口；看完会自己关。'))
+      return h('section', { className: cls('prog'), 'aria-live': 'polite' },
+        h('div', { className: cls('prog-head') }, h(Spin), h('b', { className: cls('h2') }, '正在检查'), h('span', { className: cls('muted') }, p.step || (where ? `正在搜${where}` : '准备中')),
+          h('span', { className: cls('prog-pct') }, `${Math.round(percent)}%`)),
+        h('div', { className: cls('pbar'), role: 'progressbar', 'aria-valuenow': Math.round(percent), 'aria-valuemin': 0, 'aria-valuemax': 100 }, h('i', { style: { width: `${percent}%` } })),
+        h('div', { className: cls('phases') }, ['搜各平台', '模型判断', '写日报'].map((name, i) => h('span', { key: name, 'data-state': i < phase ? 'done' : i === phase ? 'doing' : 'todo' },
+          h('i', null, i < phase ? h(Icon, { name: 'check', size: 11 }) : i + 1), name, i === 0 && total ? h('small', { className: cls('faint') }, `${Math.min(p.platformsDone, total)} / ${total}`) : null, i === 1 && p.toJudge ? h('small', { className: cls('faint') }, `${p.judged ?? 0} / ${p.toJudge}`) : null))),
+        plats.length ? h('div', { className: cls('lights') }, plats.map(x => h('span', { key: x.key, className: cls('light'), 'data-state': x.state, 'data-tone': x.state === 'done' ? lightTone(x.paid === 'ok' ? 'ok' : x.status) : undefined },
+          x.state === 'doing' ? h('span', { style: { display: 'inline-flex', width: 20, justifyContent: 'center' } }, h(Spin, { sm: true })) : h(PlatBadge, { k: x.key, size: 20, off: x.state === 'todo' }),
+          x.name, x.state === 'done' ? h('small', null, x.fresh ? `+${x.fresh}` : x.status === 'ok' || x.status === 'ready' ? '没新的' : LINK_STATUS[x.status]?.[0] ?? '') : x.state === 'doing' ? h('small', null, '正在搜') : null))) : null,
+        h('div', { className: cls('counters') },
+          h('div', null, h('b', null, p.found ?? 0), h('span', null, '搜到')),
+          h('div', null, h('b', null, p.fresh ?? 0), h('span', null, '新的')),
+          h('div', null, h('b', null, p.toJudge ? `${p.judged ?? 0} / ${p.toJudge}` : '—'), h('span', null, '已判断'))),
+        h('p', { className: cls('faint'), style: { margin: 0 } }, '小红书、抖音、微博、知乎会在插件自己的 Chrome 窗口里打开页面看，别关那个窗口；看完会自己关。'))
     }
 
-    // ---- 近 14 天每天骂的条数
-    function NegChart({ series, today }) {
-      const max = Math.max(1, ...series.map(s => s.neg))
-      return h('div', { className: cls('cols'), role: 'img', 'aria-label': `近 ${series.length} 天每天在骂的条数` }, series.map(s => h('div', { key: s.date, className: cls('col'), title: `${s.date}：${s.neg} 条在骂，${s.total} 条相关` },
-        h('span', { className: cls('col-n') }, s.neg || ''),
-        h('span', { className: cls('col-bar'), 'data-zero': s.neg === 0, 'data-today': s.date === today, style: { height: `${Math.max(2, (s.neg / max) * 100)}%` } }),
-        h('span', { className: cls('col-d') }, s.date.slice(5)))))
+    // ---- 「今天」页的几块
+    const LEVEL = { danger: ['要马上处理', 'warn'], warn: ['需要留意', 'info'], ok: ['平稳', 'check'], idle: ['等第一次检查', 'clock'] }
+
+    /** 最上面那块：今天的局势一句话、小结、今天的情绪构成。 */
+    function Board({ d, running }) {
+      const s = d.stats
+      const k = d.board?.kpi
+      const level = !d.lastRun && !s.total ? 'idle' : s.severe ? 'danger' : s.neg ? 'warn' : 'ok'
+      const need = d.platforms.filter(p => p.on && NEED_CONNECT.includes(p.status) && p.paid?.status !== 'paid')
+      const trend = { more: '比前几天多', less: '比前几天少', same: '和前几天差不多', none: '' }[s.trend]
+      const headline = s.neg ? h(Fragment, null, '今天有 ', h('b', null, s.neg), ' 条在骂你') : s.total ? '今天没看到有人骂你' : d.lastRun ? '今天还没发现提到你的内容' : running ? '正在查第一次' : '还没检查过'
+      const summary = d.report?.summary || (s.total
+        ? `今天新发现 ${s.total} 条提到你的内容，确实在说你的 ${s.related} 条，其中夸你的 ${s.pos} 条${s.neg && trend ? `；骂的${trend}` : ''}。`
+        : d.lastRun ? `上次检查 ${fmtTime(d.lastRun.endedAt ?? d.lastRun.startedAt)}，今天还没有新的。` : running ? `第一次要几分钟，查完这里会出结果；以后每天 ${d.auto.time} 会自动检查（DSH 开着就行）。` : `点右上角「立即检查」先看一次；以后每天 ${d.auto.time} 会自动检查（DSH 开着就行）。`)
+      const parts = [
+        { key: 'neg', label: '骂', value: k?.neg ?? s.neg, color: v('neg') },
+        { key: 'neu', label: '中性', value: k?.neu ?? Math.max(0, s.related - s.neg - s.pos), color: v('neu') },
+        { key: 'pos', label: '夸', value: k?.pos ?? s.pos, color: v('pos') },
+        ...((k?.unknown ?? s.unjudged) ? [{ key: 'unknown', label: '没判断', value: k?.unknown ?? s.unjudged, color: v('unk') }] : []),
+      ]
+      return h('section', { className: cls('board'), 'data-level': level },
+        h('div', { className: cls('board-text') },
+          h('span', { className: cls('level') }, h(Icon, { name: LEVEL[level][1], size: 13 }), LEVEL[level][0], s.severe ? ` · ${s.severe} 条严重` : ''),
+          h('h2', { className: cls('headline') }, headline),
+          h('p', { className: cls('board-sum') }, summary),
+          h('div', { className: cls('board-meta') },
+            h('span', null, h(Icon, { name: 'eye', size: 13 }), `盯着：${d.targets.join('、')}`),
+            d.lastRun ? h('span', null, h(Icon, { name: 'clock', size: 13 }), `上次检查 ${fmtTime(d.lastRun.endedAt ?? d.lastRun.startedAt)}`) : null,
+            h('span', null, h(Icon, { name: 'calendar', size: 13 }), d.auto.enabled ? `每天 ${d.auto.time} 自动检查` : '自动检查已关'),
+            d.report?.by === 'model' ? h('span', null, h(Icon, { name: 'spark', size: 13 }), '小结是模型写的') : null)),
+        h(Donut, { parts, sub: '今天提到', center: parts.reduce((a, p) => a + p.value, 0) }),
+        s.unjudged || need.length ? h('div', { className: cls('board-foot') },
+          s.unjudged ? h(Alert, { tone: 'warn' }, `还有 ${s.unjudged} 条模型没判断成，下次检查会再试。`) : null,
+          need.length ? h(Alert, { tone: 'warn', action: h(Btn, { sm: true, onClick: () => route.set('settings') }, '去连上') }, `${need.map(p => p.name).join('、')}${need.length > 1 ? '这几个平台' : ''}还没连上（要登录或被验证码挡住），这次没搜到它们。`) : null) : null)
     }
 
-    /** 一条内容在列表里的样子：平台、严重程度、理由、正文两行。 */
-    const Hit = ({ row: r, onOpen }) => h('button', { type: 'button', className: cls('hit'), onClick: () => onOpen(r.id) },
-      h(Row, null, h(Tag, { tone: 'outline' }, PLAT[r.platform]), r.sentiment === 'neg' ? h(Sev, { n: r.severity }) : h(SentTag, { value: r.sentiment }), r.aspect ? h(Tag, null, r.aspect) : null,
-        h('span', { className: cls('faint') }, [r.author, fmtTime(r.time)].filter(Boolean).join(' · '))),
-      r.reason ? h('b', { className: cls('h2') }, r.reason) : null,
-      h('span', { className: cls('muted', 'clamp') }, r.title ? `${r.title}：${r.text}` : r.text))
+    /** 四张大数字卡。 */
+    function KpiRow({ k }) {
+      const spark = key => k.spark.map(p => ({ date: p.date, value: p.checked ? p[key] : null }))
+      return h('div', { className: cls('kpis') },
+        // 和上面环形图中间的数一致：算上还没判断的
+        h(Kpi, { icon: 'chat', label: '今天提到', value: k.mentions + (k.unknown || 0), unit: '条', delta: deltaOf(k.mentions, k.prev.mentions, { neutral: true }) },
+          h(Spark, { points: spark('mentions'), color: v('accent'), unit: ' 条' }),
+          k.unknown ? h('span', { className: cls('kpi-foot') }, `其中 ${k.unknown} 条模型还没判断`) : null),
+        h(Kpi, { icon: 'warn', label: '在骂', value: k.neg, unit: '条', tone: k.neg ? 'danger' : undefined, delta: deltaOf(k.neg, k.prev.neg, { upIsBad: true }) },
+          h(Spark, { points: spark('neg'), color: v('neg'), unit: ' 条在骂' })),
+        h(Kpi, { icon: 'chart', label: '负面占比', value: k.negShare === null ? '—' : k.negShare, unit: k.negShare === null ? '' : '%', delta: k.negShare === null ? { tone: 'none', text: '今天还没提到你的' } : deltaOf(k.negShare, k.prev.negShare, { unit: ' 个百分点', upIsBad: true }) },
+          h('div', { className: cls('meter'), title: `相关的内容里，${k.negShare ?? 0}% 在骂` }, h('i', { style: { width: `${Math.min(100, k.negShare ?? 0)}%` } })),
+          h('span', { className: cls('kpi-foot') }, '确实在说你的内容里，有多少在骂')),
+        h(Kpi, { icon: 'flame', label: '负面互动量', value: fmtNum(k.engagement), delta: deltaOf(k.engagement, k.prev.engagement, { unit: '', upIsBad: true }), foot: '骂你的内容收到的点赞、评论、转发加起来。越高，看到的人越多' }))
+    }
+
+    function TrendPanel({ b, today }) {
+      const [asTable, setAsTable] = useState(false)
+      const t0 = b.totals
+      const peak = b.series.reduce((a, s) => (s.neg > (a?.neg ?? 0) ? s : a), null)
+      const checked = b.series.filter(s => s.checked).length
+      return h(Card, {
+        title: '情绪走势', note: `近 ${b.days} 天 · 检查过 ${checked} 天${peak ? ` · 骂得最多是 ${peak.date.slice(5)}（${peak.neg} 条）` : ''}`,
+        action: h(Btn, { kind: 'ghost', sm: true, icon: asTable ? 'chart' : 'table', onClick: () => setAsTable(!asTable) }, asTable ? '看图' : '看数字'),
+      },
+      h(Legend, { items: [...STACK.map(k => ({ label: k.label, color: k.color, value: t0[k.key] })), { label: '没检查', color: v('line-2') }] }),
+      asTable
+        ? h(Table, { rowKey: 'date', rows: [...b.series].reverse(), columns: [
+          { key: 'date', title: '日期', render: s => fmtDay(s.date) },
+          { key: 'neg', title: '骂', num: true }, { key: 'neu', title: '中性', num: true }, { key: 'pos', title: '夸', num: true },
+          { key: 'share', title: '负面占比', num: true, render: s => (s.checked ? (s.related ? `${pct(s.neg, s.related)}%` : '—') : '没检查') },
+        ] })
+        : h(StackColumns, { series: b.series, today, height: 260, label: `近 ${b.days} 天每天骂、中性、夸的条数` }))
+    }
+
+    /** 负面在骂什么：严重程度占比、骂的哪几方面。 */
+    function NegPanel({ b }) {
+      const negTotal = b.severity.reduce((a, x) => a + x.value, 0)
+      const c = useChart()
+      const maxA = Math.max(1, ...b.aspects.map(a => a.value))
+      const range = String(b.days)
+      return h(Card, { title: '负面在骂什么', note: `近 ${b.days} 天 · ${negTotal} 条` },
+        !negTotal ? h('div', { className: cls('calm') }, h(Icon, { name: 'check', size: 28 }), h('b', null, '这段时间没人骂你'), h('span', { className: cls('faint') }, '有人骂的话，这里会分出轻重和骂的方面')) : h(Fragment, null,
+          h('p', { className: cls('sub-title') }, '严重程度'),
+          h('div', { ref: c.ref, className: cls('chart') },
+            h('div', { className: cls('sevbar'), role: 'img', 'aria-label': b.severity.map(x => `${SEV_LABEL[x.level]} ${x.value} 条`).join('，') }, b.severity.filter(x => x.value > 0).map(x => {
+              const share = x.value / negTotal
+              return h('span', {
+                key: x.level, tabIndex: 0, style: { width: `calc(${share * 100}% - 2px)`, background: sevColor(x.level), color: x.level === 1 ? v('text') : v('on-strong') },
+                onMouseMove: e => c.show(e, h(TipBody, { title: SEV_LABEL[x.level], rows: [{ label: '条数', value: x.value, color: sevColor(x.level) }], foot: `占骂你的 ${pct(x.value, negTotal)}%` })), onMouseLeave: c.hide, onFocus: e => c.show(e, h(TipBody, { title: SEV_LABEL[x.level], foot: `${x.value} 条，占 ${pct(x.value, negTotal)}%` })), onBlur: c.hide,
+              }, share >= 0.16 ? `${pct(x.value, negTotal)}%` : '')
+            })),
+            c.tipNode),
+          h(Legend, { items: b.severity.map(x => ({ label: SEV_LABEL[x.level], color: sevColor(x.level), value: x.value })) }),
+          b.aspects.length ? h(Fragment, null,
+            h('p', { className: cls('sub-title'), style: { marginTop: 4 } }, '骂的哪方面（点一下看是哪几条）'),
+            h('div', { className: cls('arows') }, b.aspects.map(a => h('button', { key: a.label, type: 'button', className: cls('arow'), onClick: () => openList({ sentiment: 'neg', aspect: a.label, range }), title: `${a.label}：${a.value} 条，其中严重 ${a.severe} 条` },
+              h('span', null, a.label),
+              h('span', { className: cls('stackbar') },
+                a.severe ? h('span', { style: { width: `${(a.severe / maxA) * 100}%`, background: v('sev-3') } }) : null,
+                a.value - a.severe ? h('span', { style: { width: `calc(${((a.value - a.severe) / maxA) * 100}% - ${a.severe ? 2 : 0}px)`, background: v('sev-2') } }) : null),
+              h('span', { className: cls('num') }, a.value)))),
+            h(Legend, { items: [{ label: '其中严重的', color: v('sev-3') }, { label: '不算严重的', color: v('sev-2') }] })) : null))
+    }
+
+    /** 平台分布：每个平台一行，骂 / 中性 / 夸叠成一根横条；没连上的标出来。 */
+    function PlatformPanel({ b, platforms }) {
+      const c = useChart()
+      const on = platforms.filter(p => p.on)
+      const rows = on.map(p => ({ ...p, ...(b.platforms.find(x => x.key === p.key) ?? { related: 0, neg: 0, neu: 0, pos: 0 }) }))
+        .sort((x, y) => y.related - x.related || y.neg - x.neg)
+      const max = Math.max(1, ...rows.map(r => r.related))
+      const linked = on.filter(p => !NEED_CONNECT.includes(p.status) && !['error', 'blocked'].includes(p.status) || p.paid?.status === 'paid').length
+      const range = String(b.days)
+      return h(Card, { title: '平台分布', note: `近 ${b.days} 天 · ${on.length} 个平台里连上了 ${linked} 个` },
+        h('div', { ref: c.ref, className: cls('chart') },
+          h('div', { className: cls('prows') }, rows.map(r => {
+            const broken = NEED_CONNECT.includes(r.status) && r.paid?.status !== 'paid'
+            return h('button', {
+              key: r.key, type: 'button', className: cls('prow'), disabled: !r.related,
+              onClick: () => openList({ platform: r.key, range }),
+              onMouseMove: r.related ? e => c.show(e, h(TipBody, { title: r.name, rows: STACK.map(k => ({ label: k.label, value: r[k.key], color: k.color })), foot: `负面占比 ${pct(r.neg, r.related)}% · 点一下看这些评论` })) : undefined,
+              onMouseLeave: c.hide,
+            },
+            h(PlatName, { k: r.key }),
+            r.related
+              ? h('span', { className: cls('stackbar') }, STACK.filter(k => r[k.key] > 0).map((k, i, arr) => h('span', { key: k.key, style: { width: `calc(${(r[k.key] / max) * 100}% - ${i < arr.length - 1 ? 2 : 0}px)`, background: k.color } })))
+              : h('span', { className: cls('pnone') }, broken ? h(Fragment, null, h(LinkTag, { value: r.status }), '没连上，搜不到') : r.status === 'unknown' ? '还没检查过' : '这段时间没搜到'),
+            h('span', { className: cls('pnum') }, r.related ? r.related : '', r.related ? h('small', null, r.neg ? `骂 ${r.neg}` : '没人骂') : broken ? h(Btn, { kind: 'ghost', sm: true, onClick: e => { e.stopPropagation(); route.set('settings') } }, '去连上') : null))
+          })),
+          c.tipNode),
+        h(Legend, { items: STACK.map(k => ({ label: k.label, color: k.color })) }))
+    }
+
+    /** 负面高频词：词越大说明出现在越多条骂你的内容里，点一个词去看那些评论。 */
+    function WordsPanel({ b }) {
+      const words = b.keywords ?? []
+      const max = Math.max(1, ...words.map(w => w.value))
+      const min = Math.min(max, ...words.map(w => w.value))
+      const range = String(b.days)
+      return h(Card, { title: '骂你时常说的词', note: words.length ? '字越大，出现在越多条里。点一个词，看说它的那些评论' : '' },
+        !words.length ? h('div', { className: cls('calm') }, h(Icon, { name: 'chat', size: 26 }), h('span', null, b.totals.neg ? '骂你的还不多，凑不出常说的词' : '这段时间没人骂你'), h('span', { className: cls('faint') }, '同一个说法出现在两条以上，才会放到这里'))
+          : h('div', { className: cls('cloud') }, words.map(w => {
+            const k = max === min ? 0.5 : Math.sqrt((w.value - min) / (max - min))
+            return h('button', { key: w.word, type: 'button', className: cls('word'), title: `${w.value} 条里说到「${w.word}」`, onClick: () => openList({ sentiment: 'neg', q: w.word, range }), style: { fontSize: `${Math.round(12 + k * 14)}px`, fontWeight: k > 0.6 ? 600 : 400, '--a': `${Math.round(6 + k * 18)}%` } },
+              w.word, h('small', null, w.value))
+          })))
+    }
+
+    /** 今天最该看的一条负面（卡片）。 */
+    const WorstCard = ({ row: r, rank, onOpen }) => h('button', { type: 'button', className: cls('wcard'), style: { '--c': sevColor(r.severity) }, onClick: () => onOpen(r.id) },
+      h('div', { className: cls('wtop') }, h(PlatName, { k: r.platform }), h('span', { className: cls('faint') }, r.kind === 'comment' ? '评论' : '帖子'), h('span', { className: cls('wrank') }, `#${rank}`)),
+      h(Row, null, h(Sev, { n: r.severity, label: true }), r.aspect ? h(Tag, { tone: 'outline' }, r.aspect) : null, r.manual ? h(Tag, { tone: 'info' }, '你改过') : null),
+      r.reason ? h('span', { className: cls('wreason') }, r.reason) : null,
+      h('span', { className: cls('muted', 'clamp', 'clamp-3') }, r.title ? `${r.title}：${r.text}` : r.text),
+      r.parentTitle ? h('span', { className: cls('faint', 'clamp') }, `在「${r.parentTitle}」下面`) : null,
+      h('div', { className: cls('wfoot') }, h(Eng, { r }), h('span', { style: { marginLeft: 'auto' } }, [r.author, fmtTime(r.time)].filter(Boolean).join(' · '))))
 
     // ---- 「今天」页
     function TodayPage() {
-      const ov = useData(() => api('overview'), [])
+      const [days, setDays] = useState('14')
+      const ov = useData(() => api('overview', { days: Number(days) }), [days])
       const [prog, setProg] = useState(null)
       const [openId, setOpenId] = useState(null)
       const { busy, run } = useAction()
@@ -1070,65 +1684,109 @@ select.$-input{cursor:pointer}
       if (!d) return h(Loading)
       // 填完要盯谁就直接查第一次，不用再找「立即检查」
       if (!d.hasTargets) return h(Onboarding, { onDone: () => { ov.reload(); start() } })
-      const s = d.stats
       const running = Boolean(prog?.running)
-      const need = d.platforms.filter(p => p.on && ['login', 'waiting', 'expired', 'captcha'].includes(p.status) && p.paid?.status !== 'paid')
-      const trend = { more: '比前几天多', less: '比前几天少', same: '和前几天差不多', none: '' }[s.trend]
-      const headline = s.neg ? `今天有 ${s.neg} 条在骂你` : s.total ? '今天没看到有人骂你' : d.lastRun ? '今天还没发现提到你的内容' : running ? '正在查第一次' : '还没检查过'
+      const b = d.board
       return h(Fragment, null,
-        h(Page, { title: '今天', sub: `${d.today} · 盯着：${d.targets.join('、')}`, actions: h(Btn, { kind: 'primary', icon: 'refresh', busy: busy || running, onClick: start }, running ? '正在检查' : '立即检查') },
-          h(Card, null,
-            h('p', { className: cls('hero', s.neg ? 'hero-neg' : s.total ? 'hero-ok' : null) }, headline),
-            h('p', { className: cls('muted') }, s.total
-              ? `今天新发现 ${s.total} 条提到你的内容，确实在说你的 ${s.related} 条，其中夸你的 ${s.pos} 条${s.neg && trend ? `；骂的${trend}` : ''}。`
-              : d.lastRun ? `上次检查 ${fmtTime(d.lastRun.endedAt ?? d.lastRun.startedAt)}。` : running ? `第一次要几分钟，查完这里会出结果；以后每天 ${d.auto.time} 会自动检查（DSH 开着就行）。` : `点右上角「立即检查」先看一次；以后每天 ${d.auto.time} 会自动检查（DSH 开着就行）。`),
-            s.unjudged ? h(Alert, { tone: 'warn' }, `还有 ${s.unjudged} 条模型没判断成，下次检查会再试。`) : null,
-            need.length ? h(Alert, { tone: 'warn', action: h(Btn, { sm: true, onClick: () => route.set('settings') }, '去设置') }, `${need.map(p => p.name).join('、')}${need.length > 1 ? '这几个平台' : ''}还没连上（要登录或被验证码挡住），这次没搜到它们。`) : null),
-          running ? h(ProgressCard, { p: prog }) : null,
-          d.report?.summary ? h(Card, { title: '今日小结', note: d.report.by === 'model' ? `模型写的 · ${fmtTime(d.report.at)}` : fmtTime(d.report.at) },
-            h('p', { className: cls('pre') }, d.report.summary),
-            s.aspects.length ? h(Row, null, h('span', { className: cls('faint') }, '主要在骂'), s.aspects.slice(0, 6).map(a => h(Tag, { key: a.label, tone: 'danger' }, `${a.label} ${a.value}`))) : null,
-            s.platforms.length ? h(Row, null, h('span', { className: cls('faint') }, '在哪骂'), s.platforms.map(a => h(Tag, { key: a.label, tone: 'outline' }, `${a.label} ${a.value}`))) : null) : null,
-          d.worst.length ? h(Card, { title: '最严重的几条', note: '点一条看原文' }, h('div', { className: cls('hits') }, d.worst.map(r => h(Hit, { key: r.id, row: r, onOpen: setOpenId })))) : null,
-          h(Card, { title: '近 14 天每天骂的条数', note: s.prevAvg !== null ? `前 7 天平均每天 ${s.prevAvg} 条` : '' }, h(NegChart, { series: s.series, today: d.today })),
-          h(Card, { title: '各平台', note: `每天 ${d.auto.time} ${d.auto.enabled ? '自动检查' : '（自动检查已关）'}${d.spend?.yuan ? ` · 付费接口本月已用 ${d.spend.yuan.toFixed(2)} 元` : ''}` },
-            h(Row, null, d.platforms.filter(p => p.on).map(p => h('span', { key: p.key, className: cls('row') }, h('span', null, p.name), h(LinkTag, { value: p.status }), p.paid?.status === 'paid' ? h(Tag, { tone: 'info' }, '付费补了') : null))))),
+        h(Page, { title: '今天', sub: fmtDay(d.today), width: 1240, actions: h(Btn, { kind: 'primary', icon: 'refresh', busy: busy || running, onClick: start }, running ? '正在检查' : '立即检查') },
+          h(Board, { d, running }),
+          running ? h(ProgressPanel, { p: prog }) : null,
+          !b ? h(Alert, { tone: 'warn' }, '后台还是旧版本，图表出不来：重启一次 DSH 就好。') : h(Fragment, null,
+            h(KpiRow, { k: b.kpi }),
+            d.worst.length ? h(Fragment, null,
+              h('div', { className: cls('sec') }, h('h2', { className: cls('sec-title') }, '今天最该看的几条'), h('span', { className: cls('faint') }, '按严重程度和互动量排，点一条看原文、改判断')),
+              h('div', { className: cls('worst') }, d.worst.map((r, i) => h(WorstCard, { key: r.id, row: r, rank: i + 1, onOpen: setOpenId })))) : null,
+            h('div', { className: cls('sec') }, h('h2', { className: cls('sec-title') }, '这段时间的局势'), h('span', { className: cls('grow') }),
+              ov.loading ? h(Spin, { sm: true }) : null,
+              h(Seg, { value: days, onChange: setDays, label: '看多少天', options: [{ value: '7', label: '近 7 天' }, { value: '14', label: '近 14 天' }, { value: '30', label: '近 30 天' }] })),
+            h('div', { className: cls('duo', 'duo-21') }, h(TrendPanel, { b, today: d.today }), h(NegPanel, { b })),
+            h('div', { className: cls('duo') }, h(PlatformPanel, { b, platforms: d.platforms }), h(WordsPanel, { b }))),
+          h('p', { className: cls('faint') }, [
+            `每天 ${d.auto.time} ${d.auto.enabled ? '自动检查' : '（自动检查已关）'}`,
+            d.spend?.yuan ? `付费接口本月已用 ${d.spend.yuan.toFixed(2)} 元` : '',
+            d.model ? `判断用的模型：${d.model}` : 'DSH 还没选默认模型，没法判断：去 DSH「设置 → 模型」选一个',
+          ].filter(Boolean).join(' · '))),
         openId ? h(ItemDrawer, { id: openId, onClose: () => setOpenId(null), onChanged: ov.reload }) : null)
     }
 
     // ---- 「全部评论」页
+    /** 列表里的一行：左边一条颜色（红的越深越严重），情绪、理由、正文，右边平台和时间。 */
+    const ItemRow = ({ row: r, onOpen }) => h('button', { type: 'button', className: cls('irow'), style: { '--c': sentColor(r.sentiment, r.severity) }, onClick: () => onOpen(r.id) },
+      h('div', { className: cls('irow-sent') }, h(SentTag, { value: r.sentiment }), r.sentiment === 'neg' ? h(Sev, { n: r.severity }) : null),
+      h('div', { className: cls('irow-main') },
+        r.reason ? h('b', null, r.reason, r.manual ? h('span', { className: cls('faint') }, '（你改过）') : null) : r.manual ? h('span', { className: cls('faint') }, '你改过') : null,
+        h('span', { className: cls('muted', 'clamp') }, r.title ? `${r.title}：${r.text}` : r.text),
+        r.parentTitle || r.aspect ? h(Row, null, r.aspect ? h(Tag, { tone: 'outline' }, r.aspect) : null, r.parentTitle ? h('span', { className: cls('faint') }, `在「${r.parentTitle}」下面`) : null) : null),
+      h('div', { className: cls('irow-meta') },
+        h('div', { className: cls('irow-line') }, h(PlatName, { k: r.platform, size: 16 }), h('span', null, fmtTime(r.time) || r.foundDate)),
+        h('div', { className: cls('irow-line') }, h('span', null, [r.kind === 'comment' ? '评论' : '帖子', r.author].filter(Boolean).join(' · ')), h(Eng, { r }))))
+
+    const SENT_FILTERS = [
+      { value: 'related', label: '相关的', count: f => f.neg + f.neu + f.pos + f.unknown },
+      { value: 'neg', label: '在骂', color: v('neg'), count: f => f.neg },
+      { value: 'neu', label: '中性', color: v('neu'), count: f => f.neu },
+      { value: 'pos', label: '夸', color: v('pos'), count: f => f.pos },
+      { value: 'unknown', label: '没判断', color: v('unk'), count: f => f.unknown },
+      { value: 'unrelated', label: '无关', color: v('line-2'), count: f => f.unrelated },
+      { value: 'all', label: '全部', count: f => f.neg + f.neu + f.pos + f.unknown + f.unrelated },
+    ]
+    const RANGE_LABEL = { today: '今天', 7: '近 7 天', 14: '近 14 天', 30: '近 30 天', all: '全部' }
+
     function ListPage() {
-      const [platform, setPlatform] = useState('all')
-      const [sentiment, setSentiment] = useState('related')
-      const [range, setRange] = useState('7')
-      const [query, setQuery] = useState('')
-      const [q, setQ] = useState('')
+      // 从看板点过来的，带着筛选（只用一次）
+      const init = useRef(listPreset.get() ?? {}).current
+      useEffect(() => { listPreset.set(null) }, [])
+      const [platform, setPlatform] = useState(init.platform ?? 'all')
+      const [sentiment, setSentiment] = useState(init.sentiment ?? 'related')
+      const [range, setRange] = useState(init.range ?? '7')
+      const [aspect, setAspect] = useState(init.aspect ?? '')
+      const [query, setQuery] = useState(init.q ?? '')
+      const [q, setQ] = useState(init.q ?? '')
       const [page, setPage] = useState(1)
       const [openId, setOpenId] = useState(null)
-      const list = useData(() => api('list', { platform, sentiment, range, q, page }), [platform, sentiment, range, q, page])
-      const reset = fn => v => { fn(v); setPage(1) }
+      const list = useData(() => api('list', { platform, sentiment, range, q, aspect, page }), [platform, sentiment, range, q, aspect, page])
+      const reset = fn => val => { fn(val); setPage(1) }
       const rows = list.data?.rows ?? []
+      const fc = list.data?.facets
+      const mix = fc ? [['neg', '在骂'], ['neu', '中性'], ['pos', '夸'], ['unknown', '没判断'], ['unrelated', '无关']].map(([key, label]) => ({ key, label, value: fc.sentiments[key], color: SENT_COLOR[key] })) : []
+      const mixTotal = mix.reduce((a, x) => a + x.value, 0)
+      const platTotal = fc ? fc.platforms.reduce((a, x) => a + x.total, 0) : 0
       return h(Fragment, null,
-        h(Page, { title: '全部评论', sub: '抓到的帖子和评论都在这。模型判错了，点开一条就能改。', width: 1280 },
+        h(Page, { title: '全部评论', sub: '抓到的帖子和评论都在这。点上面的数字筛选，模型判错了点开一条就能改。', width: 1240 },
           h(Card, null,
             h(Row, null,
-              h(Select, { value: platform, onChange: reset(setPlatform), 'aria-label': '平台', options: [{ value: 'all', label: '全部平台' }, ...Object.entries(PLAT).map(([value, label]) => ({ value, label }))] }),
-              h(Select, { value: sentiment, onChange: reset(setSentiment), 'aria-label': '情绪', options: [{ value: 'related', label: '相关的（不含无关）' }, { value: 'neg', label: '在骂' }, { value: 'neu', label: '中性' }, { value: 'pos', label: '夸' }, { value: 'unknown', label: '没判断' }, { value: 'unrelated', label: '无关' }, { value: 'all', label: '全部' }] }),
-              h(Seg, { value: range, onChange: reset(setRange), label: '日期', options: [{ value: 'today', label: '今天' }, { value: '7', label: '近 7 天' }, { value: '30', label: '近 30 天' }, { value: 'all', label: '全部' }] }),
+              h(Seg, { value: range, onChange: reset(setRange), label: '日期', options: ['today', '7', '14', '30', 'all'].map(x => ({ value: x, label: RANGE_LABEL[x] })) }),
+              h('span', { className: cls('grow') }),
               h(SearchBox, { value: query, onChange: setQuery, onEnter: text => { setQ(text); setPage(1) }, onClear: () => { setQ(''); setPage(1) }, placeholder: '搜正文、作者，回车', width: 260 })),
+            h('div', { className: cls('frow') },
+              h('span', { className: cls('flabel') }, '情绪'),
+              h('div', { className: cls('stack'), style: { gap: 8 } },
+                h('div', { className: cls('chips') }, SENT_FILTERS.map(o => {
+                  const n = fc ? o.count(fc.sentiments) : null
+                  return h('button', { key: o.value, type: 'button', className: cls('chip'), 'aria-pressed': sentiment === o.value, 'data-empty': n === 0 || undefined, onClick: () => reset(setSentiment)(o.value) },
+                    o.color ? h('i', { style: { background: o.color } }) : null, o.label, n !== null ? h('b', null, n) : null)
+                })),
+                mixTotal ? h('div', { className: cls('mix'), role: 'img', 'aria-label': mix.map(x => `${x.label} ${x.value}`).join('，') }, mix.filter(x => x.value).map(x => h('span', { key: x.key, title: `${x.label} ${x.value} 条（${pct(x.value, mixTotal)}%）`, style: { flexGrow: x.value, background: x.color } }))) : null)),
+            h('div', { className: cls('frow') },
+              h('span', { className: cls('flabel') }, '平台'),
+              h('div', { className: cls('chips') },
+                h('button', { type: 'button', className: cls('chip'), 'aria-pressed': platform === 'all', onClick: () => reset(setPlatform)('all') }, '全部平台', fc ? h('b', null, platTotal) : null),
+                (fc?.platforms ?? Object.keys(PLAT).map(key => ({ key, name: PLAT[key], total: null, neg: 0 }))).map(p => h('button', { key: p.key, type: 'button', className: cls('chip'), 'aria-pressed': platform === p.key, 'data-empty': p.total === 0 || undefined, onClick: () => reset(setPlatform)(p.key), title: p.total === null ? p.name : `${p.name}：${p.total} 条，其中在骂 ${p.neg} 条` },
+                  h(PlatBadge, { k: p.key, size: 16 }), p.name, p.total !== null ? h('b', null, p.total) : null, p.neg ? h('small', null, `骂 ${p.neg}`) : null)))),
+            aspect || q ? h('div', { className: cls('frow') },
+              h('span', { className: cls('flabel') }, '还筛了'),
+              h('div', { className: cls('chips') },
+                aspect ? h('button', { type: 'button', className: cls('chip', 'chip-x'), 'aria-pressed': true, title: '去掉这个条件', onClick: () => reset(setAspect)('') }, `骂的方面：${aspect}`, h(Icon, { name: 'x', size: 14 })) : null,
+                q ? h('button', { type: 'button', className: cls('chip', 'chip-x'), 'aria-pressed': true, title: '去掉这个条件', onClick: () => { setQ(''); setQuery(''); setPage(1) } }, `说到「${q}」`, h(Icon, { name: 'x', size: 14 })) : null)) : null,
+            fc?.days?.length > 1 ? h('div', { className: cls('frow') },
+              h('span', { className: cls('flabel') }, '每天'),
+              h('div', null, h(StackColumns, { series: fc.days, height: 96, compact: true, today: fc.days.at(-1).date, label: '符合条件的内容每天多少条' }))) : null),
+          h(Card, { title: list.data ? `共 ${list.data.total} 条` : '内容', note: list.data && list.data.total > rows.length ? `先显示 ${rows.length} 条，新发现的在前` : '新发现的在前', action: list.loading && list.data ? h(Spin, { sm: true }) : null },
             list.error ? h(ErrorBox, { error: list.error, onRetry: list.reload })
               : !list.data ? h(Loading)
-                : h(Fragment, null,
-                  h('p', { className: cls('faint') }, `共 ${list.data.total} 条${list.data.total > rows.length ? `，先显示 ${rows.length} 条` : ''}`),
-                  h(Table, { rows, onRowClick: r => setOpenId(r.id), empty: h(Empty, { title: '没有符合的', body: '换个筛选条件，或者去「今天」点「立即检查」。' }), columns: [
-                    { key: 'sentiment', title: '情绪', render: r => h(Stack, null, h(SentTag, { value: r.sentiment }), r.sentiment === 'neg' ? h(Sev, { n: r.severity }) : null) },
-                    { key: 'platform', title: '平台', render: r => h(Stack, null, h('span', null, PLAT[r.platform]), h('span', { className: cls('faint') }, r.kind === 'comment' ? '评论' : '帖子')) },
-                    { key: 'text', title: '内容', render: r => h(Stack, null, r.reason ? h('b', null, r.reason, r.manual ? h('span', { className: cls('faint') }, '（你改过）') : null) : null, h('span', { className: cls('muted', 'clamp') }, r.title ? `${r.title}：${r.text}` : r.text), r.parentTitle ? h('span', { className: cls('faint') }, `在「${r.parentTitle}」下面`) : null) },
-                    { key: 'author', title: '作者' },
-                    { key: 'time', title: '时间', num: true, render: r => fmtTime(r.time) || r.foundDate },
-                    { key: 'likes', title: '点赞', num: true, render: r => r.likes ?? '' },
-                  ] }),
-                  list.data.hasMore ? h(Row, null, h(Btn, { busy: list.loading, onClick: () => setPage(page + 1) }, '再看 50 条')) : null))),
+                : !rows.length ? h(Empty, { title: '没有符合的', body: '换个筛选条件，或者去「今天」点「立即检查」。' })
+                  : h(Fragment, null,
+                    h('div', { className: cls('items') }, rows.map(r => h(ItemRow, { key: r.id, row: r, onOpen: setOpenId }))),
+                    list.data.hasMore ? h(Row, null, h(Btn, { busy: list.loading, onClick: () => setPage(page + 1) }, '再看 50 条')) : null))),
         openId ? h(ItemDrawer, { id: openId, onClose: () => setOpenId(null), onChanged: list.reload }) : null)
     }
 
@@ -1200,7 +1858,7 @@ select.$-input{cursor:pointer}
           h(Textarea, { value: form.exclude, onChange: v => patch({ exclude: v }), placeholder: '用逗号隔开' })),
         h(Card, { title: '平台', sub: '小红书、抖音、微博、知乎不登录拿不到：点「打开登录窗口」，在弹出的 Chrome 窗口里自己扫码。这个窗口用插件自己的资料，和你平时的 Chrome 分开。' },
           h(Table, { rowKey: 'key', rows: c.platformList, columns: [
-            { key: 'name', title: '平台' },
+            { key: 'name', title: '平台', render: p => h(PlatName, { k: p.key }) },
             { key: 'on', title: '开', render: p => h(Switch, { checked: p.on, onChange: on => toggle(p, on), label: `${p.name}开关` }) },
             { key: 'way', title: '免费方式', render: p => (p.way === 'browser' ? '浏览器窗口（要登录）' : '免费公开接口') },
             { key: 'status', title: '现在', render: p => h(PlatformStatus, { p }) },

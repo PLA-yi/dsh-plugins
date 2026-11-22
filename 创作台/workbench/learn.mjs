@@ -12,7 +12,7 @@ import * as core from './core.mjs';
 import * as ai from './ai.mjs';
 import * as memory from './memory.mjs';
 
-const FILE = path.join(core.APP_DIR, 'data', 'works.json');
+const FILE = path.join(core.DATA_DIR, 'works.json');
 const readJ = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 export const list = () => readJ(FILE, []);
 const saveAll = l => { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(l, null, 2)); };
@@ -50,7 +50,7 @@ export function revisions(dir, mainFile, finalText) {
   return { pairs: pairs.slice(0, 14), dropped: dropped.slice(0, 6), versions: files.length, draft: draftFile.slice(0, 19) };
 }
 
-const SYS = `你是「小易工作台」的复盘员。作者「AI 产品小易」刚发布了一篇作品，你要从这篇作品和它的修改过程里，总结出能让下一篇写得更顺手的东西。
+const SYS = `你是「创作台」的复盘员。作者刚发布了一篇作品，你要从这篇作品和它的修改过程里，总结出能让下一篇写得更顺手的东西。
 
 依据的优先级：作者说的话、作者做的决定、作者撤销的改动 > 从初稿到成稿的改动 > 成稿本身。从初稿到成稿的改动可能是作者亲手改的，也可能是作者让 AI 改的，都是作者认可后留下来的。AI 助手自己的说法不能当成作者的偏好。
 
@@ -70,7 +70,7 @@ const SYS = `你是「小易工作台」的复盘员。作者「AI 产品小易�
 excerpts 最多 4 段。memory.add 最多 6 条，只放换一篇文章也成立的偏好和经验；只对这篇成立的事实、一次性的修改不要放；和已有记忆说的是一回事就用 update 合并。`;
 
 // 工作台和命令行是两个进程，用锁文件保证同一时间只复盘一篇（锁超过 15 分钟算作废）
-const LOCK = path.join(core.APP_DIR, 'data', 'learn.lock');
+const LOCK = path.join(core.DATA_DIR, 'learn.lock');
 let running = null;
 export const busy = () => { if (running) return running; try { const l = JSON.parse(fs.readFileSync(LOCK, 'utf8')); if (Date.now() - l.t < 15 * 60000) return l.title; } catch {} return null; };
 function lock(title) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// xy：小易工作台的命令行。人和 AI 都能用；每条命令加 --json 就输出机器可读的结果。
+// xy：创作台的命令行。人和 AI 都能用；每条命令加 --json 就输出机器可读的结果。
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -17,7 +17,7 @@ import * as skills from './skills.mjs';
 import * as tpl from './templates.mjs';
 import { openArgs } from './platform.mjs';
 
-const HELP = `xy · 小易工作台命令行（管理文章和小红书卡片）
+const HELP = `xy · 创作台命令行（管理文章和小红书卡片）
 
 项目用名字指代，写一部分就行，比如 xy show deepseek。加 --json 输出 JSON（给 AI 用）。
 

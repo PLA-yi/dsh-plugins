@@ -5,9 +5,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { APP_DIR } from './core.mjs';
+import { APP_DIR, DATA_DIR } from './core.mjs';
 
-const FILE = path.join(APP_DIR, 'data', 'tts.json');
+const FILE = path.join(DATA_DIR, 'tts.json');
 // 预设：选了就填好地址、模型和默认音色，都可以再改
 export const PRESETS = [
   { id: 'siliconflow', name: '硅基流动 · CosyVoice2', baseUrl: 'https://api.siliconflow.cn/v1', model: 'FunAudioLLM/CosyVoice2-0.5B', voice: 'FunAudioLLM/CosyVoice2-0.5B:anna', note: '国内服务，中文自然，按字数计费，价格低', keyUrl: 'https://cloud.siliconflow.cn/account/ak' },

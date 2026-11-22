@@ -7,9 +7,9 @@
 // 密钥存在 data/image.json（权限 600），也可以用环境变量。
 import fs from 'node:fs';
 import path from 'node:path';
-import { APP_DIR } from './core.mjs';
+import { APP_DIR, DATA_DIR } from './core.mjs';
 
-const FILE = path.join(APP_DIR, 'data', 'image.json');
+const FILE = path.join(DATA_DIR, 'image.json');
 
 // 三种画幅，各家写法不一样
 const SIZES = {

@@ -16,7 +16,8 @@ import * as images from './images.mjs';
 import * as memory from './memory.mjs';
 import * as skills from './skills.mjs';
 import * as tpl from './templates.mjs';
-import * as xpost from './xpost.mjs';
+import * as post from './post.mjs';
+import * as cn from './cn.mjs';
 import * as learn from './learn.mjs';
 import * as edits from './edits.mjs';
 import * as video from './video.mjs';
@@ -31,7 +32,7 @@ const PORT = argPort > 0 ? +process.argv[argPort + 1] : core.config().port;
 // 嵌在别的应用里时（比如 DeepSeek Harness 客户端），由启动它的程序指定令牌，好替用户新建项目；平时每次启动随机生成
 // 写操作的令牌：存在 data/.token（权限 600），服务重启后沿用，已经打开的页面不会失效
 const TOKEN = process.env.WB_TOKEN || (() => {
-  const f = path.join(core.APP_DIR, 'data', '.token');
+  const f = path.join(core.DATA_DIR, '.token');
   try { const t = fs.readFileSync(f, 'utf8').trim(); if (/^[0-9a-f]{32}$/.test(t)) return t; } catch {}
   const t = crypto.randomBytes(16).toString('hex'); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, t, { mode: 0o600 }); return t;
 })();
@@ -228,13 +229,16 @@ const server = http.createServer(async (req, res) => {
       if (sub === 'items') {
         const qs = url.searchParams, f = pz.feed();
         const list = pz.items({ days: +qs.get('days') || 7, tiers: qs.get('tiers') ? qs.get('tiers').split(',') : null, source: qs.get('source') || null, q: qs.get('q') || '', starred: qs.get('starred') === '1' });
-        return send(res, 200, { updated: f.updated, status: f.status || {}, sources: pz.SOURCES.map(s => ({ id: s.id, name: s.name, tier: s.tier })), tiers: pz.TIERS, cats: pz.CATS, digest: pz.digestState(), gap: pz.gapState(), total: list.length,
+        return send(res, 200, { updated: f.updated, status: f.status || {}, sources: pz.SOURCES.map(s => ({ id: s.id, name: s.name, tier: s.tier, zh: !!s.zh })), tiers: pz.TIERS, cats: pz.CATS, digest: pz.digestState(), gap: pz.gapState(), total: list.length,
           // 页面只拿排在前面的 500 条；视频和信息差条目在总榜里可能排得靠后，但「视频」「信息差」两个筛选要看全，所以单独带上
           items: [...list.slice(0, 500), ...list.slice(500).filter(it => it.video || it.gap)] });
       }
       // 手动再判断一次哪些是「中文圈还没人讲」的（平时刷新完会自己判断）
       if (sub === 'gap' && req.method === 'POST') { const b = await body(req); pz.gapScan({ provider: b.provider }).catch(() => {}); return send(res, 200, pz.gapState()); }
       if (sub === 'refresh' && req.method === 'POST') return send(res, 200, await pz.refresh());
+      // 国内热榜（百度、抖音、头条、B 站）和国内搜索（公众号、B 站、新闻）
+      if (sub === 'hot' && req.method === 'GET') return send(res, 200, await cn.hot({ force: url.searchParams.get('force') === '1' }));
+      if (sub === 'search' && req.method === 'GET') return send(res, 200, await cn.search(url.searchParams.get('q')));
       if (sub === 'star' && req.method === 'POST') { const b = await body(req); return send(res, 200, pz.star(b.id, b.on) || {}); }
       if (sub === 'read' && req.method === 'POST') { const b = await body(req); return send(res, 200, await pz.readUrl(b.url)); }
       if (sub === 'brief' && req.method === 'POST') { const b = await body(req); return send(res, 200, await pz.brief(b.id, { provider: b.provider, force: !!b.force })); }
@@ -282,6 +286,8 @@ const server = http.createServer(async (req, res) => {
       if (id === 'tasks') return send(res, 200, ai.ARTICLE_TASK_NAMES);
     }
 
+    // 你的账号：名字、定位、读者（AI 写稿、出选题时参考）
+    if (a === 'profile' && !id) return send(res, 200, req.method === 'POST' ? core.saveProfile(await body(req)) : core.profile());
     // 视频板块
     if (a === 'video-tts') {
       if (!id && req.method === 'GET') return send(res, 200, tts.publicConfig());
@@ -289,11 +295,11 @@ const server = http.createServer(async (req, res) => {
       // 试听：合成一句短的。付费服务会按这一句的字数收费
       if (id === 'test' && req.method === 'POST') {
         const rt = video.runtime(); if (!rt.ok) return send(res, 400, { error: rt.error });
-        const f = path.join(core.APP_DIR, 'data', 'tts-test.mp3');
-        await tts.synth('大家好，我是小易，这是一段配音试听。', f, { env: { ...process.env, PATH: `${path.join(core.APP_DIR, 'video', 'runtime', 'bin')}:${process.env.PATH}` } });
+        const f = path.join(core.DATA_DIR, 'tts-test.mp3');
+        await tts.synth('大家好，这是一段配音试听。', f, { env: { ...process.env, PATH: `${path.join(core.APP_DIR, 'video', 'runtime', 'bin')}:${process.env.PATH}` } });
         return send(res, 200, { ok: true, t: Date.now() });
       }
-      if (id === 'sample' && req.method === 'GET') { const f = path.join(core.APP_DIR, 'data', 'tts-test.mp3'); return fs.existsSync(f) ? sendMedia(req, res, f) : send(res, 404, { error: 'not found' }); }
+      if (id === 'sample' && req.method === 'GET') { const f = path.join(core.DATA_DIR, 'tts-test.mp3'); return fs.existsSync(f) ? sendMedia(req, res, f) : send(res, 404, { error: 'not found' }); }
     }
     // 拉片：给链接或上传视频，拆出分镜、结构、手法
     if (a === 'breakdown') {
@@ -467,11 +473,11 @@ const server = http.createServer(async (req, res) => {
 
       // 改成「已发布」以后过几秒自动复盘（跟着“自动整理记忆”的开关）
       if (!action && req.method === 'PATCH') { const r = core.update(dir, await body(req), 'web'); if (r.status === '已发布') learn.sweepSoon(); return send(res, 200, r); }
-      // X 长文版：正文转成 X 认的格式，图片按顺序整理进 out/x/；open 为真就在访达里打开那个文件夹
-      if (action === 'xpost' && req.method === 'POST') {
+      // 发到国内平台（小红书、知乎、今日头条、微博）：正文转成平台认的格式，图片按顺序整理进 out/<平台>/；open 为真就在访达里打开那个文件夹
+      if (action === 'post' && req.method === 'POST') {
         const b = await body(req);
-        if (b.open) { execFile(...openArgs(path.join(dir, 'out', 'x'))); return send(res, 200, { ok: true }); }
-        return send(res, 200, await xpost.make(dir));
+        if (b.open) { const d = post.folderOf(dir, b.platform); fs.mkdirSync(d, { recursive: true }); execFile(...openArgs(d)); return send(res, 200, { ok: true }); }
+        return send(res, 200, await post.make(dir, b.platform));
       }
       if (req.method === 'POST' && ['build', 'pack', 'open'].includes(action)) {
         if (action !== 'open') { if (busy.has(id)) return send(res, 409, { error: '这个项目正在构建或打包，等它跑完' }); busy.add(id); }

@@ -8,7 +8,8 @@ import crypto from 'node:crypto';
 import * as ai from './ai.mjs';
 import * as ed from './edit.mjs';
 import * as memory from './memory.mjs';
-import { APP_DIR, log, readMeta } from './core.mjs';
+import { APP_DIR, log, readMeta, DATA_DIR } from './core.mjs';
+import * as core from './core.mjs';
 
 const ART = 'article.md';
 const DETECT = path.join(os.homedir(), '.claude/skills/lieflat-less-ai-tone/scripts/detect.py');
@@ -117,7 +118,7 @@ export async function continueAfter(dir, { quote, instruction = '', provider, ti
 const isScript = dir => readMeta(dir).form === 'script';
 
 /* ---------- AI 助手对话：回复里可以带修改建议 ---------- */
-const CHAT_SYS = `你是作者「AI 产品小易」的写作搭档，和他一起把文章改到“没有 AI 味、又非常清晰”。
+const CHAT_SYS = `你是作者的写作搭档，和作者一起把文章改到“没有 AI 味、又非常清晰”。
 ${ai.WRITING_RULES.replace('只输出改好的文字本身，不要前言、不要解释、不要用代码块包起来。', '')}
 回答格式：
 - 先用一两句大白话回应（不要客套）。
@@ -172,7 +173,7 @@ const HUMAN = { '顿号并列≥3': [1.78, '/千字', '一句话里用顿号串�
 function runDetect(text) {
   return new Promise(resolve => {
     if (!fs.existsSync(DETECT)) return resolve(null);
-    const f = path.join(APP_DIR, 'data', `prose-${uid()}.md`);
+    const f = path.join(DATA_DIR, `prose-${uid()}.md`);
     fs.writeFileSync(f, prose(text));
     execFile('python3', ['-I', DETECT, f, '--json', '--max-hits', '20'], { timeout: 60000, maxBuffer: 10 * 1024 * 1024 }, (err, out) => {
       fs.rmSync(f, { force: true });
@@ -236,7 +237,7 @@ export function publishInfo(dir, meta) {
   const summary = meta.summary ?? deck.slice(0, 120);
   return {
     built: exists(wx), stale,
-    wechat: { title, titleLen: [...title].length, summary, summaryLen: [...summary].length, author: 'AI 产品小易',
+    wechat: { title, titleLen: [...title].length, summary, summaryLen: [...summary].length, author: core.profile().name,
       cover: exists(cw) ? 'out/cover-wechat.png' : null, coverSize: imgSize(cw), images: wimgs.map(f => 'out/' + f) },
     x: { title, titleLen: [...title].length, cover: exists(cx) ? 'out/cover-x.png' : null, coverSize: imgSize(cx), images: ximgs.map(f => 'out/' + f),
       tables: (text.match(/<!--\s*fig:/g) || []).length },
@@ -270,18 +271,18 @@ export function addNote(dir, { q, answer, sources = [] }) {
 export function delResearch(dir, id) { writeJ(dir, 'research.json', research(dir).filter(x => x.id !== id)); }
 
 /* ---------- 找选题：联网搜最近的动态，给出可写的选题 ---------- */
-const IDEAS = path.join(APP_DIR, 'data', 'ideas.json');
+const IDEAS = path.join(DATA_DIR, 'ideas.json');
 export function lastIdeas() { try { return JSON.parse(fs.readFileSync(IDEAS, 'utf8')); } catch { return null; } }
 export async function findIdeas({ direction = '', type = 'article', provider, existing = [] }) {
   const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const form = type === 'card' ? '小红书图文卡片（5–8 页，让人一口气看懂一个产品、功能或趋势）' : '公众号长文（深度拆解、横向对比、行业分析，读完有收获）';
   const out = await ai.generate({ provider, web: true, searches: 15,
-    system: '你是「AI 产品小易」的选题编辑。账号定位：深度了解每一个 AI 产品，拆解 AI 产品的功能、设计和商业逻辑。你会先联网搜索，再给有信息差、读者会好奇、能写出新东西的选题。不编造事件和数字。只输出 JSON。',
+    system: `你是选题编辑。${core.persona()}你会先联网搜索，再给有信息差、读者会好奇、能写出新东西的选题。不编造事件和数字。只输出 JSON。`,
     prompt: `今天是 ${today}。帮我找 6 个现在值得写的选题。
 方向：${direction || 'AI 产品：新发布的产品、大版本更新、值得拆解的新功能、行业里的新玩法和争议'}
 形式：${form}
 要求：
-- 先联网搜最近两周的新闻、发布会、社区讨论：中文（36氪、量子位、机器之心、虎嗅、少数派、即刻）和英文（The Verge、TechCrunch、Product Hunt、Hacker News、X）都要搜，至少搜 6 次不同的关键词
+- 先联网搜最近两周的新闻、发布会、社区讨论：中文（36氪、量子位、机器之心、虎嗅、少数派、IT之家）和英文（The Verge、TechCrunch、Product Hunt、Hacker News、X）都要搜，至少搜 6 次不同的关键词
 - 选题要有具体的由头（某个产品发布、某个数据、某个争议），6 个选题的由头尽量来自不同的来源，不要都引用同一篇
 - 国内产品和海外产品都要有
 - 避开已经写过的：${existing.slice(0, 30).join('、') || '（无）'}

@@ -1,4 +1,4 @@
-<div class="mast"><p class="mast-l">AI 产品小易</p><p class="mast-r">产品拆解 · 2026.11</p></div>
+<div class="mast"><p class="mast-l">你的账号名</p><p class="mast-r">栏目名 · 2026.11</p></div>
 
 <p class="kicker">模板预览</p>
 
@@ -42,4 +42,4 @@
 <p><b>一手资料</b>　<a href="https://example.com">官方发布页</a>（2026-11-03）。</p>
 </div>
 
-<p class="sign"><b>AI 产品小易</b><br>深度了解每一个 AI 产品</p>
+<p class="sign"><b>你的账号名</b><br>一句话介绍你的账号</p>

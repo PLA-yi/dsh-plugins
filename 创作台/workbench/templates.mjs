@@ -10,8 +10,11 @@ import * as core from './core.mjs';
 import * as ed from './edit.mjs';
 import { CHROME, MAC, fileUrl } from './platform.mjs';
 
-const LIB = path.join(core.APP_DIR, 'templates', 'article'), SAMPLE = path.join(core.APP_DIR, 'templates', 'sample');
-const PREV = path.join(core.APP_DIR, 'data', 'template-previews');
+const LIB = path.join(core.APP_DIR, 'templates', 'article'), SAMPLE_SRC = path.join(core.APP_DIR, 'templates', 'sample');
+// 做预览图要改示例文章的样式再构建：在数据目录里放一份示例来改，不动程序自带的那份（几个 DSH 共用同一份程序）
+const SAMPLE = path.join(core.DATA_DIR, 'template-sample');
+function ensureSample() { if (!fs.existsSync(path.join(SAMPLE, 'build.mjs'))) fs.cpSync(SAMPLE_SRC, SAMPLE, { recursive: true, filter: f => !/[\\/](out|node_modules)$/.test(f) }); }
+const PREV = path.join(core.DATA_DIR, 'template-previews');
 const run = (cmd, args, opts = {}) => new Promise((ok, no) => execFile(cmd, args, { timeout: 180000, maxBuffer: 20e6, ...opts }, (e, out, err) => e ? no(new Error(String(err || e.message).slice(-600))) : ok(out)));
 // 预览图文件名：中文会被替换掉，所以后面加一段由完整 id 算出的编码，免得两篇文章撞名
 const safeId = id => id.replace(/[^\w.-]+/g, '_').slice(0, 40) + '-' + crypto.createHash('sha1').update(id).digest('hex').slice(0, 8);
@@ -73,6 +76,7 @@ async function make(id, force) {
   const hash = crypto.createHash('sha1').update(css).digest('hex').slice(0, 12), stamp = out + '.hash';
   if (!force && fs.existsSync(out) && fs.existsSync(stamp) && fs.readFileSync(stamp, 'utf8') === hash) return out;
   fs.mkdirSync(PREV, { recursive: true });
+  ensureSample();
   fs.writeFileSync(path.join(SAMPLE, 'theme.css'), css);
   // 示例项目的依赖链到工作台自带的那份；工作台换了位置（比如装到学员电脑上）就重新链
   const nm = path.join(SAMPLE, 'node_modules'), rt = path.join(core.APP_DIR, 'templates', 'runtime', 'node_modules');

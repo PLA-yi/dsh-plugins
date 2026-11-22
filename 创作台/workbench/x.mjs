@@ -3,9 +3,9 @@
 // 密钥存在 data/x.json（权限 600），也可以用环境变量 X_BEARER_TOKEN。
 import fs from 'node:fs';
 import path from 'node:path';
-import { APP_DIR } from './core.mjs';
+import { APP_DIR, DATA_DIR } from './core.mjs';
 
-const FILE = path.join(APP_DIR, 'data', 'x.json');
+const FILE = path.join(DATA_DIR, 'x.json');
 const API = 'https://api.x.com/2/tweets/search/recent';
 // X 按读到的帖子收费，2026 年按量计费约 0.005 美元一条。这里按这个价估算花费，到了月度上限就不再读
 export const PRICE = 0.005;

@@ -18,18 +18,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { APP_DIR } from './core.mjs';
+import { APP_DIR, DATA_DIR } from './core.mjs';
 import * as ai from './ai.mjs';
 
 // 测试时可以用环境变量 WB_MEMORY_FILE 指到别的文件，不碰真实记忆
-const FILE = process.env.WB_MEMORY_FILE || path.join(APP_DIR, 'data', 'memory.json');
-const BAK = process.env.WB_MEMORY_FILE ? FILE + '-backups' : path.join(APP_DIR, 'data', 'memory-backups');
+const FILE = process.env.WB_MEMORY_FILE || path.join(DATA_DIR, 'memory.json');
+const BAK = process.env.WB_MEMORY_FILE ? FILE + '-backups' : path.join(DATA_DIR, 'memory-backups');
 export const KINDS = { profile: '我是谁', style: '写作风格', avoid: '不要这样', layout: '排版和视觉', cards: '小红书卡片', phrase: '口头说法', ideas: '想法和选题', howto: '做法和经验', other: '其他' };
 export const SCOPES = { all: '全部', article: '文章', card: '卡片', project: '只这一篇' };
 const RULE_KINDS = ['profile', 'style', 'avoid', 'layout', 'cards'];
 const MAX_RULES = 15;
 const SEED = [
-  { kind: 'profile', text: '作者是「AI 产品小易」，写 AI 产品拆解：公众号长文和小红书图文卡片。读者是关心 AI 产品的产品经理、创业者和从业者。' },
   { kind: 'style', text: '文章要像真人写的：少加粗少列表，不用“不是……而是……”这类假对比，不用金句收尾，多用具体例子和数字，事实要有一手出处。' },
 ];
 const now = () => new Date().toISOString();
@@ -289,7 +288,7 @@ export function checklist(type = 'article', project = '', { query = '' } = {}) {
 }
 
 /* ---------- 每轮对话后：整理出记忆，印证或推翻已有的 ---------- */
-const SYS = `你是「小易工作台」的记忆整理员。作者「AI 产品小易」在和 AI 助手一起写公众号文章、做小红书卡片。每轮对话结束后，你判断这一轮里有没有值得长期记住的东西，以及已有的记忆被印证还是被推翻了。
+const SYS = `你是「创作台」的记忆整理员。作者在和 AI 助手一起写公众号文章、做小红书卡片。每轮对话结束后，你判断这一轮里有没有值得长期记住的东西，以及已有的记忆被印证还是被推翻了。
 
 记忆的种类（kind）：
 - profile 我是谁：身份、读者、账号定位
@@ -351,7 +350,7 @@ export function apply(o, { source = 'auto', project = '', evidence = '', maxAdd 
 }
 
 /* ---------- 整理：合并重复、拆开过长、分好层和范围、归档过时；整理前留备份 ---------- */
-const TIDY = `你是「小易工作台」的记忆管理员，给作者「AI 产品小易」的 AI 写作助手整理记忆。目标：守则少而硬，卡片具体可用，只对一篇成立的归到那一篇，互相打架的合成一条，过时的归档。
+const TIDY = `你是「创作台」的记忆管理员，给作者的 AI 写作助手整理记忆。目标：守则少而硬，卡片具体可用，只对一篇成立的归到那一篇，互相打架的合成一条，过时的归档。
 
 规则：
 - 守则（tier=rule）：换哪篇文章都成立、证据够多（在两篇以上文章里印证过，或作者亲口说的 source=manual/agent/seed）。要短（一句话，40 字左右）。证据不够的一律降成卡片。总数不超过 15 条。

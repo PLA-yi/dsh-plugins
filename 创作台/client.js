@@ -1,7 +1,7 @@
 /*
  * 创作台 · 页面（浏览器端）        用 DSH 插件底座 0.5 做的（2026-11-20）
  *
- * 创作台把小易工作台搬进 DSH：文章（资料→大纲→写作→体检→发布）、小红书卡片、视频和拉片、选题广场、素材、AI 记忆。
+ * 创作台：文章（资料→大纲→写作→体检→发布）、小红书卡片、视频和拉片、选题广场、素材、AI 记忆。
  * 页面不直接连工作台，都经过后台 index.js 转一道（见第 3.0 段）。
  *
  * 这个文件不用打包，DSH 直接执行它；改完保存，页面会自动换成新的（会回到对话首页，再点一下左侧入口）。
@@ -1072,6 +1072,14 @@ select.$-input{cursor:pointer}
 
     /** 现在选的模型（工作台的写法：接口 id，或「接口 id::具体模型」）。空字符串 = 跟着工作台的默认。 */
     const providerStore = makeStore(lsGet('provider', ''))
+    // 你的账号（名字、定位、读者）：设置页能改，公众号预览的署名用它
+    const profileStore = makeStore(null)
+    const loadProfile = () => wb('/api/profile').then(p => { profileStore.set(p); return p })
+    function useProfile() {
+      const pf = useStore(profileStore)
+      useEffect(() => { if (!pf) loadProfile().catch(() => {}) }, [])
+      return pf ?? { name: '', intro: '', audience: '' }
+    }
     /** 调 AI 接口时带上：{ ...body, provider: currentProvider() } */
     const currentProvider = () => providerStore.get() || undefined
     const providersCache = makeStore(null)
@@ -1157,7 +1165,7 @@ select.$-input{cursor:pointer}
     })
 
     const W_STATUSES = Object.keys(STATUS_TONE)
-    const W_PLATFORMS = ['小红书', '公众号', 'X', '抖音', '即刻', '微博', '知乎', '其他']
+    const W_PLATFORMS = ['小红书', '公众号', '抖音', '视频号', '微博', '知乎', '今日头条', 'B 站', '其他']
     const W_KINDS = [['all', '全部'], ['article', '文章'], ['script', '视频脚本'], ['card', '卡片']]
     const W_VIEWS = [{ value: 'gallery', label: '画廊' }, { value: 'table', label: '表格' }, { value: 'board', label: '看板' }, { value: 'calendar', label: '日历' }]
     const W_SORTS = [{ value: 'updated', label: '最近更新' }, { value: 'created', label: '创建时间' }, { value: 'title', label: '标题' }, { value: 'status', label: '状态' }]
@@ -2742,11 +2750,11 @@ select.$-input{cursor:pointer}
     const ART_PAPER_CSS = ':host{display:block;color-scheme:light;background:Canvas;color:CanvasText}img{max-width:100%;height:auto}.ph{color:GrayText;background:color-mix(in srgb,CanvasText 5%,Canvas);padding:10px;border-radius:6px;font-size:13px}'
     // 写作页一块一块显示：.article 是模板样式的根；上下边距去掉，免得每块都多出一截
     const ART_BLOCK_CSS = ':host{display:block}.article{margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;background:none!important}img{max-width:100%;height:auto}.pend{white-space:pre-wrap;color:GrayText}'
-    // 仿 X 长文的排版（实际以 X 为准）
-    const artXCss = () => `:host{display:block;color-scheme:light;background:Canvas;color:CanvasText}
+    // 发到国内平台时的预览排版（知乎、头条、微博是文章；小红书是图 + 纯文字）。只是大概的样子，实际以平台为准
+    const artPostCss = () => `:host{display:block;color-scheme:light;background:Canvas;color:CanvasText}
 .xa{max-width:600px;margin:0 auto;padding:0 0 48px;font:17px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;word-break:break-word}
-.cover{display:block;width:100%;aspect-ratio:5/2;object-fit:cover;margin:0 0 22px}
-.nocover{aspect-ratio:5/2;margin:0 0 22px;background:color-mix(in srgb,CanvasText 4%,Canvas);color:GrayText;display:grid;place-items:center;font-size:14px}
+.cover{display:block;width:100%;aspect-ratio:2.35/1;object-fit:cover;margin:0 0 22px}
+.nocover{aspect-ratio:2.35/1;margin:0 0 22px;background:color-mix(in srgb,CanvasText 4%,Canvas);color:GrayText;display:grid;place-items:center;font-size:14px}
 h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spacing:-.3px}
 .by{display:flex;gap:10px;align-items:center;margin:0 16px 24px;padding-bottom:16px;border-bottom:1px solid color-mix(in srgb,CanvasText 8%,Canvas)}
 .av{width:40px;height:40px;border-radius:50%;background:CanvasText;color:Canvas;display:grid;place-items:center;font-weight:700;font-size:16px;flex:none}
@@ -2758,14 +2766,23 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
 .body blockquote{margin:0 0 18px;padding:2px 0 2px 16px;border-left:4px solid color-mix(in srgb,CanvasText 18%,Canvas)}
 .body figure{margin:6px 0 10px}.body figure img{display:block;width:100%;border-radius:16px;border:1px solid color-mix(in srgb,CanvasText 8%,Canvas)}
 .body figure + p > i:only-child{display:block;font-size:15px;color:GrayText}
-.miss{margin:6px 0 18px;padding:14px;border:1px dashed var(--${P}-danger);border-radius:12px;color:var(--${P}-danger);font-size:14px}`
-    /** X 长文预览：封面、标题、作者行、正文；「【插图 NN】」换成真实图片，放在粘贴后它该在的位置 */
-    function artXHtml(p, r) {
+.miss{margin:6px 0 18px;padding:14px;border:1px dashed var(--${P}-danger);border-radius:12px;color:var(--${P}-danger);font-size:14px}
+.pics{display:grid;grid-auto-flow:column;grid-auto-columns:72%;gap:8px;overflow-x:auto;margin:0 0 18px;scroll-snap-type:x mandatory}
+.pics img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;scroll-snap-align:start;border:1px solid color-mix(in srgb,CanvasText 8%,Canvas)}
+.nopics{aspect-ratio:3/4;width:72%;margin:0 0 18px;border-radius:10px;background:color-mix(in srgb,CanvasText 4%,Canvas);color:GrayText;display:grid;place-items:center;font-size:14px;text-align:center;padding:12px}
+.note h1{font-size:20px;margin:0 16px 10px}.note .txt{padding:0 16px;white-space:pre-wrap;font-size:16px;line-height:1.75}`
+    /** 发到平台的预览：封面、标题、作者行、正文；「【插图 NN】」换成真实图片，放在粘贴后它该在的位置。小红书是一排图 + 纯文字 */
+    function artPostHtml(p, r, author) {
       const u = f => projectFile(p, f) + '?v=' + (r.t || '')
+      const name = author || '你的账号名'
+      const by = `<div class="by"><span class="av">${artEsc([...name][0] || '我')}</span><div><b>${artEsc(name)}</b><span>${artEsc(todayStr())} · ${r.chars} 字 · ${(r.images ?? []).length} 张图</span></div></div>`
+      if (r.plain) {
+        const pics = (r.images ?? []).filter(im => im.file)
+        return `<div class="xa note">${pics.length ? `<div class="pics">${pics.map(im => `<img src="${u(im.file)}" alt="" loading="lazy">`).join('')}</div>` : '<div class="nopics">还没有配图。小红书至少要一张图，第一张是封面</div>'}<h1>${artEsc(r.title)}</h1>${by}<div class="txt">${artEsc(r.text)}</div></div>`
+      }
       const byN = Object.fromEntries((r.images ?? []).map(im => [im.n, im]))
       const body = artAbs(r.html).replace(/<p>【插图 (\d+)】<\/p>/g, (_, n) => { const im = byN[+n]; return im?.file ? `<figure><img src="${u(im.file)}" alt="" loading="lazy"></figure>` : `<div class="miss">插图 ${n}：${artEsc(im?.note || '没有图片')}</div>` })
-      return `<div class="xa">${r.cover ? `<img class="cover" src="${u(r.cover)}" alt="">` : '<div class="nocover">还没有 5:2 封面</div>'}<h1>${artEsc(r.title)}</h1>
-<div class="by"><span class="av">易</span><div><b>AI 产品小易</b><span>${artEsc(todayStr())} · ${r.chars} 字 · ${(r.images ?? []).length} 张图</span></div></div><div class="body">${body}</div></div>`
+      return `<div class="xa">${r.cover ? `<img class="cover" src="${u(r.cover)}" alt="">` : '<div class="nocover">还没有封面（用公众号那张横版封面）</div>'}<h1>${artEsc(r.title)}</h1>${by}<div class="body">${body}</div></div>`
     }
 
     /** 预览里的链接点了不跳走（不然整个 DSH 页面会被换掉） */
@@ -2785,9 +2802,10 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
     /** 公众号的样子：标题、作者、日期，下面是正文 */
     function ArtWechatPaper({ project: p, read, width = 420 }) {
       const date = p.published?.[0]?.date || p.plan || todayStr()
+      const pf = useProfile()
       return h('div', { className: cls('a-paper', 'a-paper-read'), style: { '--pw': `${width}px` } },
         h('h1', { className: cls('a-wx-t') }, p.title),
-        h('div', { className: cls('a-wx-m') }, h('span', { className: cls('a-wx-a') }, 'AI 产品小易'), h('span', null, date)),
+        h('div', { className: cls('a-wx-m') }, h('span', { className: cls('a-wx-a') }, pf.name || '你的账号名'), h('span', null, date)),
         h(ShadowHtml, {
           css: ART_PAPER_CSS,
           cssUrls: !read.built && read.css ? [fileUrl(read.css)] : [],
@@ -3436,25 +3454,30 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
       h('div', { className: cls('a-pl-body') }, h('b', null, title), note ? h('span', { className: cls('faint') }, note) : null, children),
       action ? h('div', { className: cls('a-pl-act') }, action) : null)
 
-    /** 发到 X 长文：一步步给标题、封面、正文和每张插图（发布页和阅读页的「复制到推特」共用） */
-    function ArtXSteps({ project: p, data: r, copied: copiedAtFirst = false, extra }) {
-      const [copied, setCopied] = useState(copiedAtFirst)
+    // 发到哪：公众号单独一套；国内其他平台走同一套（标题、封面、正文、插图一步步给）
+    const ART_PFS = [{ value: 'wechat', label: '公众号' }, { value: 'xhs', label: '小红书' }, { value: 'zhihu', label: '知乎' }, { value: 'toutiao', label: '今日头条' }, { value: 'weibo', label: '微博' }]
+    const artPfName = v => ART_PFS.find(x => x.value === v)?.label ?? v
+    const artPost = (p, platform) => wbPost(pApi(p, 'post'), { platform })
+    /** 发到小红书、知乎、今日头条、微博：一步步给标题、封面、正文和每张插图 */
+    function ArtPostSteps({ project: p, data: r, extra }) {
+      const [copied, setCopied] = useState(false)
       const [got, setGot] = useState({})
       const u = f => projectFile(p, f) + '?v=' + (r.t || '')
       const nn = n => String(n).padStart(2, '0')
-      const img = async (key, f) => { try { await artCopyImage(u(f)); setGot(g => ({ ...g, [key]: true })); toast('图片已复制，回 X 里按 ⌘V') } catch (e) { notify('复制图片失败：' + e.message) } }
-      const openDir = () => wbPost(pApi(p, 'xpost'), { open: true }).then(() => toast('在访达里打开了'), e => notify(e.message))
+      const img = async (key, f) => { try { await artCopyImage(u(f)); setGot(g => ({ ...g, [key]: true })); toast(`图片已复制，回${r.name}里按 ⌘V`) } catch (e) { notify('复制图片失败：' + e.message) } }
+      const openDir = () => wbPost(pApi(p, 'post'), { platform: r.platform, open: true }).then(() => toast('在访达里打开了'), e => notify(e.message))
       const steps = []
       const step = (key, title, note, body, action) => steps.push(h('div', { key, className: cls('a-xs') }, h('b', { className: cls('a-xs-no') }, steps.length + 1),
         h('div', { className: cls('a-pl-body') }, h('b', null, title), note ? h('span', { className: cls('faint') }, note) : null, body), action ? h('div', { className: cls('a-pl-act') }, action) : null))
-      step('title', '标题', `${[...r.title].length} 字`, h('div', null, r.title), h(Btn, { sm: true, icon: 'copy', onClick: () => copyText(r.title, '标题已复制') }, '复制'))
-      if (r.cover) step('cover', '封面（5:2）', null, h('img', { className: cls('a-cov'), src: u(r.cover), alt: '' }), h(Btn, { sm: true, icon: got.cover ? 'check' : 'copy', onClick: () => img('cover', r.cover) }, got.cover ? '已复制' : '复制图片'))
-      step('body', copied ? `正文已复制（${r.chars} 字）` : `正文 ${r.chars} 字`, '在 X 长文编辑器的正文里按 ⌘V 粘贴。小标题、粗体、链接、列表、引用都会保留；表格已经转成图片，和插图一起编号。', null,
-        h(Btn, { sm: true, kind: copied ? 'default' : 'primary', icon: 'copy', onClick: async () => { await copyHtml(r.html, r.text, '正文已复制，到 X 里粘贴'); setCopied(true) } }, copied ? '再复制一次' : '复制正文'))
+      const tLen = [...r.title].length
+      step('title', '标题', `${tLen} 字，${r.name}上限 ${r.titleMax}${tLen > r.titleMax ? '，要改短' : ''}`, h('div', null, r.title), h(Btn, { sm: true, icon: 'copy', onClick: () => copyText(r.title, '标题已复制') }, '复制'))
+      if (r.cover) step('cover', '封面', '公众号那张横版封面，平台会让你再裁一下', h('img', { className: cls('a-cov'), src: u(r.cover), alt: '' }), h(Btn, { sm: true, icon: got.cover ? 'check' : 'copy', onClick: () => img('cover', r.cover) }, got.cover ? '已复制' : '复制图片'))
+      step('body', copied ? `正文已复制（${r.chars} 字）` : `正文 ${r.chars} 字${r.charsMax ? `，上限 ${r.charsMax}` : ''}`, r.tips, null,
+        h(Btn, { sm: true, kind: copied ? 'default' : 'primary', icon: 'copy', onClick: async () => { if (r.plain) await copyText(r.text, `正文已复制，到${r.name}里粘贴`); else await copyHtml(r.html, r.text, `正文已复制，到${r.name}里粘贴`); setCopied(true) } }, copied ? '再复制一次' : '复制正文'))
       if (r.images?.length) {
-        step('imgs', `插图 ${r.images.length} 张`, '正文里每个「【插图 03】」：点一下那一行，在这里点「复制」，回 X 里按 ⌘V，再删掉那行占位字。动图复制不了，打开图片文件夹拖进去。',
+        step('imgs', r.plain ? `配图 ${r.images.length} 张，按顺序传` : `插图 ${r.images.length} 张`, r.plain ? '在这里点「复制」，回小红书里按 ⌘V，或者打开图片文件夹一次拖进去。第一张就是封面。' : `正文里每个「【插图 03】」：点一下那一行，在这里点「复制」，回${r.name}里按 ⌘V，再删掉那行占位字。动图复制不了，打开图片文件夹拖进去。`,
           h(Thumbs, { min: 120 }, r.images.map(im => h(Thumb, {
-            key: im.n, src: im.file ? u(im.file) : undefined, name: `插图 ${nn(im.n)}${im.anim ? ' · 动图' : ''}${im.kind === '表' ? ' · 表格' : ''}`, meta: im.note || im.caption || '',
+            key: im.n, src: im.file ? u(im.file) : undefined, name: `${r.plain ? '配图' : '插图'} ${nn(im.n)}${im.anim ? ' · 动图' : ''}${im.kind === '表' ? ' · 表格' : ''}`, meta: im.note || im.caption || '',
           }, im.file && !im.anim ? h(Btn, { sm: true, icon: got[im.n] ? 'check' : 'copy', onClick: () => img(im.n, im.file) }, got[im.n] ? '已复制' : '复制') : h(Btn, { sm: true, icon: 'folder', onClick: openDir }, '文件夹')))))
       }
       return h(Fragment, null, steps,
@@ -3462,17 +3485,13 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
         h(Row, null, h(Btn, { sm: true, kind: 'ghost', icon: 'folder', onClick: openDir }, '打开图片文件夹')),
         extra)
     }
-    /** 复制到推特：先把正文复制上，再弹窗一步步给剩下的 */
-    async function artCopyX(p) {
-      const r = await wbPost(pApi(p, 'xpost'), {})
-      await copyHtml(r.html, r.text, '正文已复制，到 X 长文编辑器里粘贴')
-      return r
-    }
 
     function PublishTab({ project: p, reload, version }) {
       const [pf, setPf] = useState(lsGet('a.pf', 'wechat'))
       const [gen, setGen] = useState(0)
-      const data = useData(() => Promise.all([artS(p, 'publish'), wb(pApi(p, 'read') + '?v=wechat'), pf === 'x' ? wbPost(pApi(p, 'xpost'), {}).catch(() => null) : null]), [p.id, pf, version, gen])
+      const other = pf !== 'wechat' && ART_PFS.some(x => x.value === pf)
+      const data = useData(() => Promise.all([artS(p, 'publish'), wb(pApi(p, 'read') + '?v=wechat'), other ? artPost(p, pf).catch(e => ({ failed: e.message })) : null]), [p.id, pf, version, gen])
+      const pfAuthor = useProfile().name
       const [sum, setSum] = useState(null)
       const sumRef = useRef({ timer: null, dirty: false, v: '' })
       const [link, setLink] = useState('')
@@ -3490,7 +3509,7 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
       const saveRef = useRef(saveSum); saveRef.current = saveSum
       useEffect(() => () => saveRef.current(), [])
       const onSum = v => { setSum(v); const s = sumRef.current; s.v = v; s.dirty = true; clearTimeout(s.timer); s.timer = setTimeout(() => saveRef.current(), 600) }
-      const platform = pf === 'x' ? 'X' : '公众号'
+      const platform = artPfName(other ? pf : 'wechat')
       const mark = async () => {
         setMarking(true)
         try {
@@ -3504,12 +3523,12 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
       }
 
       const head = h('div', { className: cls('a-tool') },
-        h(Seg, { value: pf, label: '发到哪', onChange: v => { saveSum(); setPf(v); lsSet('a.pf', v) }, options: [{ value: 'wechat', label: '公众号' }, { value: 'x', label: 'X 长文' }] }),
+        h(Seg, { value: other ? pf : 'wechat', label: '发到哪', onChange: v => { saveSum(); setPf(v); lsSet('a.pf', v) }, options: ART_PFS }),
         h('span', { className: cls('grow') }),
         h('span', { className: cls('faint') }, '左边是发出去的样子，右边照着顺序做'))
       if (data.error) return h(ArtWrap, { wide: true }, head, h(ErrorBox, { error: data.error, onRetry: data.reload }))
-      if (!info || (data.loading && pf === 'x' && !xr)) return h(ArtWrap, { wide: true }, head, h(Loading))
-      const w = info.wechat, x = info.x
+      if (!info || (data.loading && other && !xr)) return h(ArtWrap, { wide: true }, head, h(Loading))
+      const w = info.wechat
       const ratio = s => (s ? s[0] / s[1] : 0)
       const done = (p.published ?? []).filter(r => r.platform === platform)
       const markRow = h(ArtPubRow, {
@@ -3517,11 +3536,12 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
         action: h(Btn, { kind: 'primary', icon: 'check', busy: marking, onClick: mark }, '标记已发布'),
       }, done.length ? h(Row, null, done.map((r, i) => h(Tag, { key: i, tone: 'success' }, `已发布 ${r.date}`))) : null,
       h(Input, { value: link, onChange: setLink, placeholder: '发布后的链接（可以不填）' }))
-      const preview = pf === 'x'
-        ? (xr ? h('div', { className: cls('a-paper', 'a-paper-read'), style: { '--pw': '420px' } }, h(ShadowHtml, { css: artXCss(), html: artXHtml(p, xr), onClick: artNoNav })) : h(Alert, { tone: 'warn' }, 'X 长文版没整理出来，先去写作页看看正文'))
+      const xok = xr && !xr.failed
+      const preview = other
+        ? (xok ? h('div', { className: cls('a-paper', 'a-paper-read'), style: { '--pw': '420px' } }, h(ShadowHtml, { css: artPostCss(), html: artPostHtml(p, xr, pfAuthor), onClick: artNoNav })) : h(Alert, { tone: 'warn' }, `${platform}版没整理出来${xr?.failed ? `：${xr.failed}` : ''}，先去写作页看看正文`))
         : h(ArtWechatPaper, { project: p, read })
-      const list = pf === 'x'
-        ? (xr ? h(ArtXSteps, { key: 'x' + xr.t, project: p, data: xr, extra: markRow }) : markRow)
+      const list = other
+        ? (xok ? h(ArtPostSteps, { key: pf + xr.t, project: p, data: xr, extra: markRow }) : markRow)
         : h(Fragment, null,
           h(ArtPubRow, { ok: w.titleLen <= 64, title: '标题', note: `${w.titleLen} 字，公众号上限 64`, action: h(Btn, { sm: true, icon: 'copy', onClick: () => copyText(w.title, '标题已复制') }, '复制') }, h('div', null, w.title)),
           h(ArtPubRow, { ok: true, title: '作者', action: h(Btn, { sm: true, icon: 'copy', onClick: () => copyText(w.author) }, '复制') }, h('div', null, w.author)),
@@ -3542,10 +3562,10 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
           }),
           markRow)
       return h(ArtWrap, { wide: true }, head,
-        pf === 'x' ? null : h(ArtBuildAlert, { project: p, built: info.built, stale: info.stale, onBuilt: () => { setGen(n => n + 1); reload?.() } }),
+        other ? null : h(ArtBuildAlert, { project: p, built: info.built, stale: info.stale, onBuilt: () => { setGen(n => n + 1); reload?.() } }),
         h('div', { className: cls('a-pub') },
           h('div', { className: cls('a-desk') }, preview),
-          h(Card, { title: `发到${pf === 'x' ? ' X' : '公众号'}，按顺序做` }, list)))
+          h(Card, { title: `发到${platform}，按顺序做` }, list)))
     }
 
     // ================================================================== ⑥ 提词（视频脚本）
@@ -3629,23 +3649,16 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
       h('div', { className: cls('a-big-text') }, cur.say.map((s, k) => h('p', { key: k }, s))))
     }
 
-    // ================================================================== ⑦ 阅读：像在微信里打开、在 X 上打开
+    // ================================================================== ⑦ 阅读：像在微信里打开
 
     function ReadTab({ project: p, reload, goTab, version }) {
-      const [rv, setRv] = useState(lsGet('a.rv', 'wechat'))
       const [rw, setRw] = useState(lsGet('a.rw', 'phone'))
       const [gen, setGen] = useState(0)
       const [copying, setCopying] = useState('')
-      const [xDone, setXDone] = useState(null)   // 复制到推特以后：一步步给剩下的
-      const view = useData(() => (rv === 'x' ? wbPost(pApi(p, 'xpost'), {}) : wb(pApi(p, 'read') + '?v=wechat')), [p.id, rv, version, gen])
+      const view = useData(() => wb(pApi(p, 'read') + '?v=wechat'), [p.id, version, gen])
       const d = view.data
-      const fits = d && (rv === 'x' ? Array.isArray(d.images) : 'built' in d)
+      const fits = d && 'built' in d
       const copy = async () => {
-        if (rv === 'x') {
-          setCopying('整理中')
-          try { setXDone(await artCopyX(p)) } catch (e) { notify('整理推特版失败：' + e.message) } finally { setCopying('') }
-          return
-        }
         setCopying('准备中')
         try { const v = await artCopyWechat(p, setCopying); if (v.built !== d?.built || v.stale !== d?.stale) setGen(n => n + 1) } catch (e) { notify('没复制成：' + e.message) } finally { setCopying('') }
       }
@@ -3653,26 +3666,20 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
       const width = rw === 'wide' ? 680 : 420
       return h(ArtWrap, { wide: true },
         h('div', { className: cls('a-tool') },
-          h(Seg, { value: rv, label: '看哪个版本', onChange: v => { setRv(v); lsSet('a.rv', v) }, options: [{ value: 'wechat', label: '公众号' }, { value: 'x', label: 'X 长文' }] }),
           h(Seg, { value: rw, label: '多宽', onChange: v => { setRw(v); lsSet('a.rw', v) }, options: [{ value: 'phone', label: '手机' }, { value: 'wide', label: '电脑' }] }),
           h('span', { className: cls('grow') }),
-          rv === 'x' ? h('span', { className: cls('faint') }, '仿 X 长文的样子，实际以 X 为准') : d?.built && !d.stale && d.builtAt ? h('span', { className: cls('faint') }, `构建于 ${ago(d.builtAt)}`) : null,
-          h(Btn, { icon: rv === 'x' ? 'send' : 'copy', busy: !!copying, tip: rv === 'x' ? '正文转成 X 认的格式复制上，再一步步给标题、封面和插图' : '复制带格式的正文，直接粘进公众号编辑器', onClick: copy }, copying || (rv === 'x' ? '复制到推特' : '复制正文')),
+          d?.built && !d.stale && d.builtAt ? h('span', { className: cls('faint') }, `构建于 ${ago(d.builtAt)}`) : null,
+          h(Btn, { icon: 'copy', busy: !!copying, tip: '复制带格式的正文，直接粘进公众号编辑器。发到小红书、知乎、头条、微博去「发布」那一步', onClick: copy }, copying || '复制正文'),
           h(Btn, { icon: 'edit', onClick: () => goTab('write') }, '去写作'),
           p.previews?.length ? h(Menu, { kind: 'ghost', icon: 'more', tip: '更多', align: 'right', items: [{ title: '在浏览器里打开' }, ...p.previews.map(x => ({ key: x.file, label: x.name, icon: 'link', onClick: () => open(x.file) }))] }) : null),
         view.error ? h(ErrorBox, { error: view.error, onRetry: view.reload })
           : !fits ? h(Loading)
-            : rv === 'x'
-              ? h(Fragment, null,
-                d.warnings?.length ? h(Alert, { tone: 'warn' }, d.warnings.join('；')) : null,
-                h('div', { className: cls('a-desk') }, h('div', { className: cls('a-paper', 'a-paper-read'), style: { '--pw': `${width}px` } }, h(ShadowHtml, { css: artXCss(), html: artXHtml(p, d), onClick: artNoNav }))))
-              : h(Fragment, null,
+            : h(Fragment, null,
                 h(ArtBuildAlert, { project: p, built: d.built, stale: d.stale, onBuilt: () => { setGen(n => n + 1); reload?.() } }),
                 h('div', { className: cls('a-desk') }, h(ArtWechatPaper, { project: p, read: d, width }))),
         p.outputs?.length ? h(Card, { title: `产出的图（${p.outputs.length}）`, sub: '点一张在浏览器里打开' },
           h(Thumbs, { min: 140 }, p.outputs.map(f => h(Thumb, { key: f, src: projectFile(p, f), name: f.split('/').pop(), onClick: () => open(f) })))) : null,
-        xDone ? h(Modal, { title: '发到 X（推特）长文', width: 600, onClose: () => setXDone(null), footer: [h(Btn, { key: 'ok', kind: 'primary', onClick: () => setXDone(null) }, '完成')] },
-          h(ArtXSteps, { project: p, data: xDone, copied: true })) : null)
+        null)
     }
 
     STYLE_PARTS.push(`
@@ -4513,14 +4520,19 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
     }
 
     // 筛选条件记在这里：去别的页再回来还是原样
-    const libPlazaFilter = { days: 7, tiers: ['A', 'B', 'C', 'D'], source: '', q: '', starred: false, cat: '', sort: 'score' }
+    const libPlazaFilter = { days: 7, tiers: ['A', 'B', 'C', 'D'], source: '', q: '', starred: false, cat: '', sort: 'score', region: 'cn' }
+    // 国内 / 国外：按信息源分（国内科技媒体、B 站算国内），默认先看国内
+    const LIB_REGION = [{ value: 'cn', label: '国内' }, { value: 'intl', label: '国外' }, { value: 'all', label: '全部' }]
+    const libWan = n => (n >= 1e8 ? `${(n / 1e8).toFixed(1)} 亿` : n >= 1e4 ? `${Math.round(n / 1e4)} 万` : n ? String(n) : '')
+    /** 热榜、国内搜索里的一条 → 新建作品弹窗要的选题 */
+    const libIdeaFromLink = (x, sourceName, form, why = '') => ({ title: x.title, angle: '', why, form, brief: x.text || x.desc || '', evidence: [{ id: 'cn-' + x.url, title: x.title, url: x.url, tier: 'C', sourceName }] })
     const LIB_DAYS = [{ value: '1', label: '24 小时' }, { value: '3', label: '3 天' }, { value: '7', label: '7 天' }, { value: '14', label: '14 天' }]
     const LIB_SORT = [{ value: 'score', label: '综合排序' }, { value: 'new', label: '最新' }, { value: 'hot', label: '最热' }]
 
     function PlazaPage() {
       const [f, setF] = useState(() => ({ ...libPlazaFilter }))
       const upd = patch => setF(x => { const y = { ...x, ...patch }; Object.assign(libPlazaFilter, y); return y })
-      const [tab, setTab] = useState(() => (lsGet('plazaTab', 'feed') === 'ideas' ? 'ideas' : 'feed'))
+      const [tab, setTab] = useState(() => (['ideas', 'hot', 'search'].includes(lsGet('plazaTab', 'feed')) ? lsGet('plazaTab', 'feed') : 'feed'))
       const feed = useData(() => wb(`/api/plaza/items?${new URLSearchParams({ days: f.days, starred: f.starred ? '1' : '' })}`), [f.days, f.starred])
       const [items, setItems] = useState([])
       const [digest, setDigest] = useState(null)
@@ -4586,7 +4598,10 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
 
       // ---- 筛选
       const all = items
-      const base = all.filter(it => f.tiers.includes(it.tier) && (!f.source || it.source === f.source))
+      const zhSrc = new Set((feed.data?.sources ?? []).filter(s => s.zh).map(s => s.id))
+      const inRegion = it => f.region === 'all' || (f.region === 'cn') === zhSrc.has(it.source)
+      const nRegion = { cn: all.filter(it => zhSrc.has(it.source)).length, intl: all.filter(it => !zhSrc.has(it.source)).length, all: all.length }
+      const base = all.filter(it => inRegion(it) && f.tiers.includes(it.tier) && (!f.source || it.source === f.source))
       const cnt = {}
       for (const it of base) { const c = libCat(it); cnt[c] = (cnt[c] || 0) + 1 }
       const nGap = base.filter(it => it.gap).length
@@ -4598,7 +4613,7 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
         && (!kw || `${it.title} ${it.summary || ''} ${it.zh?.t || ''} ${it.zh?.one || ''}`.toLowerCase().includes(kw)))
       if (f.sort === 'new') shown = [...shown].sort((a, b) => Date.parse(b.time || b.firstSeen) - Date.parse(a.time || a.firstSeen))
       if (f.sort === 'hot') shown = [...shown].sort((a, b) => libHot(b) - libHot(a))
-      const srcList = (feed.data?.sources ?? []).filter(s => all.some(x => x.source === s.id))
+      const srcList = (feed.data?.sources ?? []).filter(s => all.some(x => x.source === s.id && inRegion(x)))
 
       const openIdx = shown.findIndex(x => x.id === openId)
       const openIt = openId ? all.find(x => x.id === openId) ?? (openRef && { firstSeen: new Date().toISOString(), ...openRef, id: openId }) : null
@@ -4613,6 +4628,9 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
       ].filter(Boolean).join(' · ')
 
       const feedView = h(Fragment, null,
+        h('div', { className: cls('l-filters') },
+          h(Seg, { value: f.region, onChange: v => upd({ region: v, source: '' }), label: '国内还是国外', options: LIB_REGION.map(o => ({ ...o, label: `${o.label} ${nRegion[o.value]}` })) }),
+          h('span', { className: cls('faint') }, f.region === 'cn' ? '36氪、虎嗅、IT之家、量子位、少数派、B 站等国内来源' : f.region === 'intl' ? 'OpenAI、Google 等官方博客和海外社区、媒体' : '')),
         h('div', { className: cls('l-chips') },
           h(LibChip, { on: !cat, count: base.length, onClick: () => upd({ cat: '' }) }, '全部'),
           nGap ? h(LibChip, { on: cat === '#gap', count: nGap, tip: '海外在讲、中文来源里近两周没人提的', onClick: () => upd({ cat: '#gap' }) }, h(Icon, { name: 'lib-globe', size: 14 }), '信息差') : null,
@@ -4637,20 +4655,22 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
 
       return h(Page, {
         title: '选题广场', width: 1280,
-        sub: h(Fragment, null, digest?.running || gap?.running ? h(Spin, { sm: true }) : null, digest?.running || gap?.running ? ' ' : null, status || '各信息源最近的 AI 动态，按可信度和热度排'),
+        sub: h(Fragment, null, digest?.running || gap?.running ? h(Spin, { sm: true }) : null, digest?.running || gap?.running ? ' ' : null, status || '国内外各信息源最近的动态，按可信度和热度排；还有国内热榜和国内搜索'),
         actions: [
           h(Btn, { key: 'r', icon: 'refresh', busy: refreshing, onClick: () => refresh(false) }, refreshing ? '抓取中…' : '刷新信息源'),
           h(Menu, { key: 'm', icon: 'more', tip: '更多', align: 'right', items: [
-            { key: 'src', label: '信息源和 X 接口', icon: 'settings', onClick: () => setSources(true) },
+            { key: 'src', label: '信息源', icon: 'settings', onClick: () => setSources(true) },
             { key: 'gap', label: '重新找信息差', icon: 'lib-globe', note: '看看哪些海外在讲、中文圈还没人讲', disabled: gap?.running, onClick: findGaps },
             { key: 'dg', label: '补写中文要点', icon: 'spark', note: '没写完或出错时点这里接着写', disabled: digest?.running, onClick: () => kickDigest(true) },
           ] }),
         ],
       },
-      h(Tabs, { value: tab, onChange: v => { setTab(v); lsSet('plazaTab', v) }, options: [{ value: 'feed', label: `最新动态${all.length ? ` ${all.length}` : ''}` }, { value: 'ideas', label: 'AI 选题' }] }),
+      h(Tabs, { value: tab, onChange: v => { setTab(v); lsSet('plazaTab', v) }, options: [{ value: 'feed', label: `最新动态${all.length ? ` ${all.length}` : ''}` }, { value: 'hot', label: '热榜' }, { value: 'search', label: '国内搜索' }, { value: 'ideas', label: 'AI 选题' }] }),
       // 两块都一直挂着：AI 挑选题要一分钟，切过去看动态不会把它打断
       h('div', { hidden: tab !== 'feed' }, h('div', { className: cls('stack') }, feedView)),
       h('div', { hidden: tab !== 'ideas' }, h(LibIdeas, { days: f.days, onOpen: openItem, onMake: (type, idea) => setMake({ type, idea }) })),
+      tab === 'hot' ? h(LibHot, { onMake: (type, idea) => setMake({ type, idea }) }) : null,
+      h('div', { hidden: tab !== 'search' }, h(LibCnSearch, { onMake: (type, idea) => setMake({ type, idea }) })),
       openIt ? h(LibPzDetail, {
         key: openIt.id, it: openIt, index: openIdx, total: shown.length, onNav: nav, onClose: () => { setOpenId(null); setOpenRef(null) },
         onStar: toggleStar, onBrief: (id, r) => patchItem(id, { brief: r, zh: { ...(all.find(x => x.id === id)?.zh || {}), ...(r.t ? { t: r.t } : {}), ...(r.one ? { one: r.one } : {}) } }),
@@ -4659,6 +4679,61 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
       reading ? h(LibReadModal, { it: reading, onClose: () => setReading(null) }) : null,
       sources ? h(LibSourcesModal, { data: feed.data, onClose: () => setSources(false), onPulled: feed.reload }) : null,
       make ? h(NewProjectModal, { type: make.type, idea: make.idea, onClose: () => setMake(null) }) : null)
+    }
+
+    /** 热榜：百度、抖音、今日头条、B 站，各前 50 条。点标题去原网页，点「写」把它带进新建作品 */
+    function LibHot({ onMake }) {
+      const [d, setD] = useState(null)
+      const [err, setErr] = useState(null)
+      const [busy, setBusy] = useState(false)
+      const [open, setOpen] = useState({})
+      const load = async force => {
+        setBusy(true); setErr(null)
+        try { setD(await wb(`/api/plaza/hot${force ? '?force=1' : ''}`)) } catch (e) { setErr(e) } finally { setBusy(false) }
+      }
+      useEffect(() => { load(false) }, [])
+      if (!d) return err ? h(ErrorBox, { error: err, onRetry: () => load(false) }) : h(Loading)
+      return h('div', { className: cls('stack') },
+        h('div', { className: cls('l-filters') },
+          h('span', { className: cls('faint', 'grow') }, `国内几个平台现在大家在看什么 · 更新于 ${ago(d.t)}，15 分钟内不重复拉`),
+          h(Btn, { sm: true, icon: 'refresh', busy, onClick: () => load(true) }, '刷新')),
+        h(Grid, { min: 280 }, d.lists.map(l => {
+          const top = l.items[0]?.heat || 1, more = open[l.id], list = more ? l.items : l.items.slice(0, 15)
+          return h(Card, { key: l.id, title: l.name, note: l.ok ? `${l.items.length} 条` : '', action: h(LibLinkBtn, { href: l.home, icon: 'link', sm: true }, '去看') },
+            !l.ok ? h(Alert, { tone: 'warn' }, `这次没拿到：${l.error}`) : h('ol', { className: cls('l-hot') }, list.map(x => h('li', { key: x.rank, className: cls('l-hot-i') },
+              h('b', { className: cls('l-hot-n'), 'data-top': x.rank <= 3 || undefined }, x.rank),
+              h('div', { className: cls('l-hot-b') },
+                h('a', { className: cls('l-hot-t'), href: x.url, target: '_blank', rel: 'noreferrer', title: x.desc || x.title }, x.title),
+                x.heat ? h('span', { className: cls('l-hot-bar') }, h('i', { style: { width: `${Math.max(4, Math.round(x.heat / top * 100))}%` } }), h('em', null, libWan(x.heat))) : null),
+              h(Btn, { sm: true, kind: 'ghost', icon: 'file', label: '写成文章', onClick: () => onMake('article', libIdeaFromLink(x, l.name, 'article', `${l.name}第 ${x.rank} 名${x.heat ? `，热度 ${libWan(x.heat)}` : ''}`)) })))),
+            l.ok && l.items.length > 15 ? h('div', { className: cls('l-more') }, h(Btn, { sm: true, kind: 'ghost', onClick: () => setOpen(o => ({ ...o, [l.id]: !more })) }, more ? '收起' : `看全部 ${l.items.length} 条`)) : null)
+        })))
+    }
+
+    /** 国内搜索：公众号文章、B 站视频、中文新闻一起搜 */
+    function LibCnSearch({ onMake }) {
+      const [q, setQ] = useState(lsGet('cnq', ''))
+      const [d, setD] = useState(null)
+      const [busy, setBusy] = useState(false)
+      const [err, setErr] = useState(null)
+      const go = async () => {
+        const v = q.trim(); if (!v) return
+        lsSet('cnq', v); setBusy(true); setErr(null)
+        try { setD(await wb(`/api/plaza/search?q=${enc(v)}`)) } catch (e) { setErr(e) } finally { setBusy(false) }
+      }
+      return h('div', { className: cls('stack') },
+        h('form', { className: cls('l-filters'), onSubmit: e => { e.preventDefault(); go() } },
+          h(Input, { value: q, onChange: setQ, placeholder: '搜一个产品、事件、话题，比如：DeepSeek', 'aria-label': '搜什么', style: { flex: '1 1 260px', maxWidth: '460px' } }),
+          h(Btn, { kind: 'primary', icon: 'search', busy, onClick: go }, '搜国内'),
+          h('span', { className: cls('faint') }, '公众号文章、B 站视频、中文新闻一起搜，十几秒')),
+        err ? h(ErrorBox, { error: err, onRetry: go }) : null,
+        !d ? (busy ? h(Loading) : h(Empty, { title: '在国内平台上找素材', body: '看看大家在公众号、B 站、新闻里怎么讲这件事，挑一条直接写成作品。' }))
+          : h(Grid, { min: 300 }, d.groups.map(g => h(Card, { key: g.id, title: g.name, note: g.status === 'ok' ? `${g.items.length} 条` : '' },
+            g.status !== 'ok' ? h(Alert, { tone: 'warn' }, g.note) : !g.items.length ? h('p', { className: cls('faint') }, '没搜到') : h('div', { className: cls('l-sr') }, g.items.map((x, i) => h('div', { key: i, className: cls('l-sr-i') },
+              h('a', { className: cls('l-hot-t'), href: x.url, target: '_blank', rel: 'noreferrer' }, x.title),
+              h('div', { className: cls('l-meta') }, [x.author, x.time ? ago(x.time) : '', x.stats?.views ? `${libWan(x.stats.views)} 播放` : ''].filter(Boolean).map((t, k) => h('span', { key: k }, t))),
+              x.text ? h('p', { className: cls('faint', 'l-sr-t') }, x.text) : null,
+              h('div', null, h(Btn, { sm: true, kind: 'ghost', icon: 'file', onClick: () => onMake('article', libIdeaFromLink(x, g.name, 'article', `在${g.name}里搜「${d.q}」找到的`)) }, '写成文章')))))))))
     }
 
     /** 选题广场的一张卡 */
@@ -4770,78 +4845,9 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
             const st = d.status?.[s.id]
             return h('span', { key: s.id, className: cls('l-src'), 'data-state': st?.off ? 'off' : st && !st.ok ? 'bad' : undefined, title: st?.error || undefined }, s.name, h('em', null, stText(st)))
           })))),
-        h(Card, { title: 'X（推特）' }, h(LibXSettings, { onPulled })))
+        )
     }
 
-    /**
-     * X 接口设置（选题广场的信息源弹窗和设置页共用）。密钥只收不回，页面上只显示头尾。
-     * X 按读到的帖子数收费：提高上限、缩短间隔、加账号、立即拉取之前都先问一句。
-     */
-    function LibXSettings({ onPulled }) {
-      const [xc, setXc] = useState(null)
-      const [err, setErr] = useState(null)
-      const [form, setForm] = useState(null)
-      const [busy, setBusy] = useState('')
-      const take = c => {
-        setXc(c)
-        setForm({ token: '', accounts: (c.accounts || []).map(a => a.u + (a.official ? '*' : '')).join('\n'), max: String(c.max ?? ''), everyHours: String(c.everyHours ?? ''), budget: String(c.budget ?? '') })
-      }
-      const load = () => { setErr(null); wb('/api/plaza/x').then(take, setErr) }
-      useEffect(load, [])
-      if (err) return h(ErrorBox, { error: err, onRetry: load })
-      if (!xc || !form) return h(Loading)
-      const set = k => v => setForm(x => ({ ...x, [k]: v }))
-      const collect = () => ({ token: form.token.trim(), accounts: form.accounts.split('\n').map(s => s.trim()).filter(Boolean), max: +form.max, everyHours: +form.everyHours, budget: +form.budget })
-      // 这次改动里会让花费变多的地方
-      const costLines = v => {
-        const old = new Set((xc.accounts || []).map(a => a.u.toLowerCase()))
-        const added = v.accounts.map(s => s.replace(/^@/, '').replace(/\*$/, '').trim()).filter(u => u && !old.has(u.toLowerCase()))
-        const lines = []
-        if (v.budget > xc.budget) lines.push(`每月上限从 ${xc.budget} 美元提到 ${v.budget} 美元`)
-        if (v.max > xc.max) lines.push(`每次最多读从 ${xc.max} 条提到 ${v.max} 条`)
-        if (v.everyHours < xc.everyHours) lines.push(`两次拉取的间隔从 ${xc.everyHours} 小时缩到 ${v.everyHours} 小时`)
-        if (added.length) lines.push(`新加 ${added.length} 个账号：${added.slice(0, 5).join('、')}${added.length > 5 ? ' 等' : ''}`)
-        return lines
-      }
-      const bullet = lines => lines.map(s => `· ${s}`).join('\n')
-      const save = async () => {
-        const v = collect()
-        const lines = costLines(v)
-        if (lines.length && !(await ask({ title: '这样改会多花钱', text: `X 按读到的帖子数收费（每条约 ${xc.price} 美元）。这次改动：\n${bullet(lines)}\n\n确定保存吗？`, ok: '保存' }))) return
-        setBusy('save')
-        try { const c = await wbPost('/api/plaza/x', v); take(c); toast(c.configured ? '已保存 X 设置' : '已保存账号，还差密钥') } catch (e) { notify(e.message) } finally { setBusy('') }
-      }
-      const pull = async () => {
-        const v = collect()
-        const lines = costLines(v)
-        const text = `马上去 X 读最多 10 条新帖（不管间隔时间），约 ${(10 * xc.price).toFixed(2)} 美元，算在本月上限里。${lines.length ? `\n\n会先保存这些改动：\n${bullet(lines)}` : ''}`
-        if (!(await ask({ title: '现在试拉 10 条？', text, ok: '拉取' }))) return
-        setBusy('pull')
-        try {
-          if (v.token || v.accounts.length) take(await wbPost('/api/plaza/x', v))
-          const r = await wbPost('/api/plaza/xpull', { test: true })
-          if (r.config) take(r.config)
-          if (r.status?.ok) { toast(`X 拉到 ${r.status.n} 条，新增 ${r.added} 条`); onPulled?.() } else notify(r.status?.error || '没拉到')
-        } catch (e) { notify(e.message) } finally { setBusy('') }
-      }
-      const numField = (label, k, attrs) => h(Field, { label }, h(Input, { type: 'number', value: form[k], onChange: set(k), ...attrs }))
-      return h('div', { className: cls('stack') },
-        h(Row, null,
-          h(Tag, { tone: xc.configured ? 'success' : undefined }, xc.configured ? '已接入' : '还没接入'),
-          xc.configured ? h('span', { className: cls('faint') }, `密钥 ${xc.token}${xc.fromEnv ? '（来自环境变量）' : ''}${xc.lastPull ? ` · 上次拉取 ${libTime(xc.lastPull)}（${xc.lastCount} 条）` : ' · 还没拉过'}`) : null),
-        h(Field, { label: 'Bearer Token', hint: '在 X 开发者后台（developer.x.com）的应用里复制。保存后这里不再显示原文。' },
-          h(Input, { type: 'password', autoComplete: 'off', value: form.token, onChange: set('token'), placeholder: xc.configured ? '已保存。要换就粘贴新的' : '粘贴 Bearer Token' })),
-        h(Field, { label: '关注的账号', hint: '每行一个。后面加 * 表示官方账号（算「官方一手」），其余算「社区一手」' }, h(Textarea, { rows: 6, value: form.accounts, onChange: set('accounts') })),
-        h(Grid, { cols: 3 },
-          numField('每次最多读（条）', 'max', { min: 10, max: 500 }),
-          numField('两次至少隔（小时）', 'everyHours', { min: 0, step: 0.5 }),
-          numField('每月最多花（美元）', 'budget', { min: 0, max: 500, step: 1 })),
-        h(Alert, null, `本月已读 ${xc.monthReads} 条，约 ${xc.monthCost} 美元；到上限还能读 ${xc.readsLeft} 条。按每条约 ${xc.price} 美元估算，实际以 X 后台账单为准。`),
-        h('p', { className: cls('faint', 'l-p') }, '选题广场只拉上次之后的新帖，不拉转发和回复，没到间隔时间点「刷新」也不会去拉。AI 查资料时也会在 X 上搜讨论、读帖子全文，都算在这个月的上限里，到了上限就停。'),
-        h(Row, null,
-          h(Btn, { kind: 'primary', busy: busy === 'save', disabled: Boolean(busy), onClick: save }, '保存 X 设置'),
-          h(Btn, { icon: 'refresh', busy: busy === 'pull', disabled: Boolean(busy) || (!xc.configured && !form.token.trim()), tip: !xc.configured && !form.token.trim() ? '先填密钥' : undefined, onClick: pull }, '试拉 10 条')))
-    }
 
     // ---- AI 选题：适合发文章 / 适合做视频 / 适合发短评 / 适合写的项目
     const LIB_GROUPS = [['items', '适合发文章'], ['videos', '适合做视频'], ['takes', '适合发短评'], ['projects', '适合写的项目']]
@@ -5284,11 +5290,29 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
 
     // ================================================================== 3.50.5 设置：模型、生图、配音、技能、X 接口
 
-    const LIB_SET_TABS = [{ value: 'models', label: '模型' }, { value: 'images', label: '生图' }, { value: 'tts', label: '配音' }, { value: 'skills', label: '技能' }, { value: 'x', label: 'X 接口' }]
+    const LIB_SET_TABS = [{ value: 'account', label: '你的账号' }, { value: 'models', label: '模型' }, { value: 'images', label: '生图' }, { value: 'tts', label: '配音' }, { value: 'skills', label: '技能' }]
     /** 设置页。别的页想直接打开某一块：go('settings', { tab: 'images' }) */
+    // ---- 你的账号：AI 写稿、出选题时参考；公众号预览、封面上的署名也用它
+    function LibAccountSettings() {
+      const data = useData(loadProfile, [])
+      const [f, setF] = useState(null)
+      useEffect(() => { if (data.data && !f) setF(data.data) }, [data.data])
+      const act = useAction()
+      if (!f) return data.error ? h(ErrorBox, { error: data.error, onRetry: data.reload }) : h(Loading)
+      const set = k => v => setF(x => ({ ...x, [k]: v }))
+      const save = () => act.run(async () => { profileStore.set(await wbPost('/api/profile', f)); toast('已保存') })
+      return h(Card, { title: '你的账号', sub: 'AI 写稿、改稿、出选题时会参考这些；公众号预览、封面上的署名也用这里的名字。不填也能用。' },
+        h(Stack, null,
+          act.error ? h(Alert, { tone: 'danger' }, act.error.message) : null,
+          h(Field, { label: '账号名字' }, h(Input, { value: f.name, onChange: set('name'), placeholder: '比如：某某聊科技', maxLength: 30 })),
+          h(Field, { label: '账号定位', hint: '一两句话：写什么、给谁看、什么风格' }, h(Textarea, { value: f.intro, onChange: set('intro'), rows: 2, maxLength: 200, placeholder: '比如：用大白话讲清楚新出的 AI 工具，偏实测和教程' })),
+          h(Field, { label: '读者是谁' }, h(Input, { value: f.audience, onChange: set('audience'), maxLength: 200, placeholder: '比如：想用 AI 提效的上班族' })),
+          h(Row, null, h(Btn, { kind: 'primary', busy: act.busy, onClick: save }, '保存'))))
+    }
+
     function SettingsPage({ tab }) {
       const valid = v => LIB_SET_TABS.some(o => o.value === v)
-      const [cur, setCur] = useState(() => (valid(tab) ? tab : valid(lsGet('settingsTab', '')) ? lsGet('settingsTab', '') : 'models'))
+      const [cur, setCur] = useState(() => (valid(tab) ? tab : valid(lsGet('settingsTab', '')) ? lsGet('settingsTab', '') : 'account'))
       const pick = v => { setCur(v); lsSet('settingsTab', v) }
       return h(Page, { title: '设置', sub: '密钥只存在这台电脑上，页面上只显示遮挡后的样子' },
         h(Tabs, { value: cur, onChange: pick, options: LIB_SET_TABS }),
@@ -5296,7 +5320,7 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
           : cur === 'images' ? h(LibImageSettings)
             : cur === 'tts' ? h(LibTtsSettings)
               : cur === 'skills' ? h(LibSkillSettings)
-                : h(Card, { title: 'X（推特）接口', sub: '选题广场拉 X 上的新帖用，AI 查资料时也会用。X 按读到的帖子数收费。' }, h(LibXSettings)))
+                : h(LibAccountSettings))
     }
 
     // ---- 模型
@@ -5615,6 +5639,22 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
 .$-l-filters>.$-input{width:auto;max-width:240px}
 .$-l-filters>.$-grow{flex:1 1 200px}
 .$-l-more{display:flex;justify-content:center;padding:8px 0}
+.$-l-hot{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.$-l-hot-i{display:flex;align-items:center;gap:10px;min-width:0;padding:6px 4px;border-radius:var(--$-r-sm)}
+.$-l-hot-i:hover{background:var(--$-soft)}
+.$-l-hot-n{flex:none;width:22px;text-align:center;font-size:13px;font-variant-numeric:tabular-nums;color:var(--$-text-3)}
+.$-l-hot-n[data-top]{color:var(--$-on-brand);background:var(--$-danger);border-radius:6px;line-height:20px}
+.$-l-hot-b{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.$-l-hot-t{color:var(--$-text);text-decoration:none;font-size:14px;line-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.$-l-hot-t:hover{color:var(--$-accent)}
+.$-l-hot-bar{display:flex;align-items:center;gap:6px}
+.$-l-hot-bar i{display:block;height:4px;border-radius:2px;background:var(--$-chart-7)}
+.$-l-hot-bar em{font-style:normal;font-size:11px;color:var(--$-text-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.$-l-sr{display:flex;flex-direction:column;gap:12px}
+.$-l-sr-i{display:flex;flex-direction:column;gap:4px;min-width:0;padding-bottom:12px;border-bottom:1px solid var(--$-line)}
+.$-l-sr-i:last-child{border-bottom:0;padding-bottom:0}
+.$-l-sr-i .$-l-hot-t{white-space:normal}
+.$-l-sr-t{margin:0;font-size:13px;line-height:20px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .$-l-pz{display:flex;flex-direction:column;min-width:0;border-radius:var(--$-r-xl);background:var(--$-card);box-shadow:inset 0 0 0 .5px var(--$-card-line);overflow:hidden;cursor:pointer;text-align:left}
 .$-l-pz[aria-current=true]{box-shadow:inset 0 0 0 1.5px var(--$-accent)}
 .$-l-pz-body{flex:1;display:flex;flex-direction:column;gap:6px;padding:12px 14px 10px}

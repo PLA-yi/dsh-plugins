@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import * as core from './core.mjs';
 import * as ed from './edit.mjs';
 
-const DIR = path.join(core.APP_DIR, 'data', 'assets'), FILES = path.join(DIR, 'files'), INDEX = path.join(DIR, 'index.json');
+const DIR = path.join(core.DATA_DIR, 'assets'), FILES = path.join(DIR, 'files'), INDEX = path.join(DIR, 'index.json');
 const IMG_EXT = /\.(png|jpe?g|webp|gif|svg|avif)$/i;
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36';
 

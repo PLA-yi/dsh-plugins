@@ -9,6 +9,7 @@ import { marked } from 'marked';
 import juice from 'juice';
 
 const src = process.argv[2] || 'article.md';
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const OUT = 'out';
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PROFILE = path.resolve(OUT, '.chrome');
@@ -88,9 +89,9 @@ h1 span{color:#2f6bff}
 .g{display:grid;grid-template-columns:repeat(3,${h * .15}px);gap:${h * .028}px;padding:${h * .035}px;background:#fff;border:1px solid #e4e9f2}
 .g img{width:100%;border-radius:22%;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
 .f{display:flex;justify-content:space-between;border-top:1px solid #e4e9f2;padding-top:${h * .025}px}
-</style><div class="c"><div class="m"><b>AI 产品小易</b><span class="mono">PRODUCT TEARDOWN</span></div>
+</style><div class="c"><div class="m"><b>${esc(process.env.WB_AUTHOR || '')}</b><span class="mono">${new Date().toISOString().slice(0, 10)}</span></div>
 <div class="b"><h1>${title.replace(/^(万字深度拆解)\s*/, '$1<br><span>') + (title.startsWith('万字深度拆解') ? '</span>' : '')}</h1>${icons ? `<div class="i"><div class="g">${icons}</div></div>` : ''}</div>
-<div class="f"><span class="mono">KIMI · UNITY · UNREAL · BLENDER · GODOT</span><span class="mono">深度了解每一个 AI 产品</span></div></div>`;
+<div class="f"><span class="mono"></span><span class="mono">${esc(process.env.WB_INTRO || '')}</span></div></div>`;
 fs.writeFileSync(path.join(OUT, 'cover-x.html'), cover(750, 300, 40));
 fs.writeFileSync(path.join(OUT, 'cover-wechat.html'), cover(900, 383, 44));
 // covers.html 画好的封面优先（img/cover-*.png），没有才用这里的旧版

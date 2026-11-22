@@ -7,10 +7,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, execFile } from 'node:child_process';
-import { APP_DIR } from './core.mjs';
+import { APP_DIR, DATA_DIR } from './core.mjs';
 import { CHROME } from './platform.mjs';
 
-const PROFILE = path.join(APP_DIR, 'data', 'chrome-video');
+const PROFILE = path.join(DATA_DIR, 'chrome-video');
 const RT = path.join(APP_DIR, 'video', 'runtime');
 const YTDLP = path.join(RT, 'py', 'bin', 'yt-dlp');
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';

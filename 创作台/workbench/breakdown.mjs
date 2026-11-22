@@ -199,7 +199,7 @@ async function prepare(dir, { download }, say) {
 // 让 Claude Code 看着截帧、口播稿、切点表写分析。它只能读这个文件夹、写 analysis.json
 const BRIEF = m => `# 拉片
 
-这个文件夹里是一条别人的视频，作者（「AI 产品小易」，做 AI 产品拆解和科普的短视频）想学它是怎么做的。你来拉片：看材料，写出一份能直接拿来用的分析。
+这个文件夹里是一条别人的视频，${core.who()}想学它是怎么做的。${core.persona()}你来拉片：看材料，写出一份能直接拿来用的分析。
 
 ## 这条视频
 
@@ -251,7 +251,7 @@ async function analyze(dir) {
     try {
       await vagent.runAgent({
         dir, signal: ctrl.signal, commands: false, maxRounds: 120, canWrite: rel => rel === 'analysis.json',
-        system: '你在「小易工作台」里做拉片。严格按下面的要求做，只读这个文件夹里的材料，只写 analysis.json。工具：read_file（读文件、看截帧图片）、list_files、write_file。下面说的「用 Read 看」就是用 read_file 看。\n\n' + BRIEF(m),
+        system: '你在「创作台」里做拉片。严格按下面的要求做，只读这个文件夹里的材料，只写 analysis.json。工具：read_file（读文件、看截帧图片）、list_files、write_file。下面说的「用 Read 看」就是用 read_file 看。\n\n' + BRIEF(m),
         prompt: '按要求给这条视频拉片：先读 shots.json 和 lines.txt，再把 frames/ 里的截帧一张张看过，然后写 analysis.json。写完回一句「好了」。',
         step: () => {}, onText: () => {},
       });
@@ -262,7 +262,7 @@ async function analyze(dir) {
   }
   const bin = ai.ccBin();
   const args = ['-p', '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--no-session-persistence', '--permission-mode', 'acceptEdits',
-    '--append-system-prompt', '你在「小易工作台」里做拉片。严格按这个文件夹里 CLAUDE.md 的要求做，只读这个文件夹里的材料，只写 analysis.json。', '--allowedTools', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash(ls:*)', 'Bash(cat:*)'];
+    '--append-system-prompt', '你在「创作台」里做拉片。严格按这个文件夹里 CLAUDE.md 的要求做，只读这个文件夹里的材料，只写 analysis.json。', '--allowedTools', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash(ls:*)', 'Bash(cat:*)'];
   await new Promise((ok, no) => {
     const ch = spawn(bin, args, { cwd: dir, env: env(ai.ccEnv()) });
     let buf = '', err = '', result = null, isErr = false;

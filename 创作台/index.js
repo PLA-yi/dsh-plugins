@@ -1,8 +1,8 @@
 /**
  * 创作台 · 后台（Host）
  *
- * 创作台是把「小易工作台」（文章、小红书卡片、视频、选题广场、素材、记忆）搬进 DSH 的插件。
- * 真正干活的还是工作台自己的代码：这里在后台起一个工作台服务（只听 127.0.0.1），页面要什么就转给它。
+ * 创作台：文章、小红书卡片、视频、选题广场、素材、记忆。
+ * 真正干活的是插件自带的工作台（workbench/）：这里在后台起一个工作台服务（只听 127.0.0.1），页面要什么就转给它。
  * 工作台里的 AI 走 DSH 自己的模型：host/gateway.js 开一个本机转发口，工作台把它当成一个模型接口来调，
  * 密钥留在 DSH 里，不经过工作台。
  *
@@ -16,7 +16,7 @@
  */
 import { spawn } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { cpSync, createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdir, rm, stat, appendFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -49,16 +49,20 @@ function readable(text) {
 }
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 
-// ------------------------------------------------------------------ 自带的工作台：作品放哪
+// ------------------------------------------------------------------ 工作台的数据放哪
 
 /**
- * 自带的工作台第一次用时，告诉它作品放在哪个文件夹（工作台的 config.json 的 roots）。
- * 作品默认放在「文稿/创作台」，在访达里能直接找到；cordis.patch.yml 写了 projectsDir 就用那个。
+ * 工作台的数据（设置、素材库、记忆、选题广场）放在这个 DSH 自己的目录里（dataDir/workbench），
+ * 几个 DSH（比如桌面版和网页测试版）装同一个插件文件夹时各存各的。作品默认放在「文稿/创作台」，在访达里能直接找到；
+ * cordis.patch.yml 写了 projectsDir 就用那个。早期版本把数据放在插件的 workbench/data 里，第一次启动时搬过来一份。
  */
-function prepareBundled(dir, projectsDir, log) {
+function prepareData(dataDir, projectsDir, log) {
   try {
     mkdirSync(projectsDir, { recursive: true })
-    const file = join(dir, 'config.json')
+    const old = join(import.meta.dirname, 'workbench', 'data')
+    if (!existsSync(dataDir) && existsSync(old)) cpSync(old, dataDir, { recursive: true })
+    mkdirSync(dataDir, { recursive: true })
+    const file = join(dataDir, 'config.json')
     let conf = {}
     try { conf = JSON.parse(readFileSync(file, 'utf8')) } catch {}
     if (conf.roots?.length === 1 && conf.roots[0] === projectsDir) return
@@ -70,7 +74,7 @@ function prepareBundled(dir, projectsDir, log) {
 
 // ------------------------------------------------------------------ 工作台服务：起、等、挂了再起
 
-function makeRunner({ dir, port, token, gateway, log }) {
+function makeRunner({ dir, dataDir, port, token, gateway, log }) {
   let child = null
   let ready = null          // 正在起或已经起好的 Promise
   let lastError = ''
@@ -82,11 +86,11 @@ function makeRunner({ dir, port, token, gateway, log }) {
   }
 
   async function start() {
-    if (!existsSync(join(dir, 'server.mjs'))) throw new UserError(`没找到工作台：${dir}。插件文件夹里应该有 workbench/；如果在 cordis.patch.yml 里写了 workbenchDir，检查一下路径。`)
+    if (!existsSync(join(dir, 'server.mjs'))) throw new UserError(`插件不完整：没找到 ${dir}。重新下载插件再装一次。`)
     // 端口上已经有程序：多半是 DSH 刚被强行关掉、上一个工作台还没退（它两秒内会自己退），等一会儿
     for (let i = 0; i < 12 && await alive(); i++) await sleep(500)
     if (await alive()) throw new UserError(`端口 ${port} 已经被别的程序占用了。关掉它，或在 cordis.patch.yml 里换一个 port。`)
-    const env = { ...process.env, ELECTRON_RUN_AS_NODE: '1', WB_TOKEN: token }
+    const env = { ...process.env, ELECTRON_RUN_AS_NODE: '1', WB_TOKEN: token, WB_DATA_DIR: dataDir }
     if (gateway) { env.WB_DSH_GATEWAY = await gateway.start(); env.WB_DSH_GATEWAY_KEY = gateway.key }
     child = spawn(process.execPath, [join(import.meta.dirname, 'host', 'run-workbench.mjs'), join(dir, 'server.mjs'), '--port', String(port)], { cwd: dir, env, stdio: ['ignore', 'pipe', 'pipe'] })
     let tail = ''
@@ -326,18 +330,18 @@ async function respond(request, handlers, log) {
 /**
  * 插件入口。
  * @param {import('@deepseek-ai/cordis').Context} ctx
- * @param {{ dataDir: string, workbenchDir?: string, projectsDir?: string, port?: number }} config - 来自 cordis.patch.yml。
+ * @param {{ dataDir: string, projectsDir?: string, port?: number }} config - 来自 cordis.patch.yml。
  */
 export function apply(ctx, config) {
   if (!config?.dataDir) throw new Error(`${name}：cordis.patch.yml 里要写 dataDir`)
   const log = text => ctx.logger?.warn?.(`${name}: ${text}`)
-  // 默认用插件自带的工作台（workbench/）；写了 workbenchDir 就用那边的（比如自己另外装的小易工作台）
-  const bundled = join(import.meta.dirname, 'workbench')
-  const dir = config.workbenchDir || bundled
-  if (dir === bundled) prepareBundled(bundled, config.projectsDir || join(homedir(), 'Documents', '创作台'), log)
+  // 工作台的程序在插件的 workbench/，数据在这个 DSH 自己的目录里
+  const dir = join(import.meta.dirname, 'workbench')
+  const wbData = join(config.dataDir, 'workbench')
+  prepareData(wbData, config.projectsDir || join(homedir(), 'Documents', '创作台'), log)
   const token = randomBytes(16).toString('hex')
   const gateway = makeGateway(ctx)
-  const runner = makeRunner({ dir, port: Number(config.port) || 5295, token, gateway, log })
+  const runner = makeRunner({ dir, dataDir: wbData, port: Number(config.port) || 5295, token, gateway, log })
   const handlers = makeHandlers({ runner, token, dataDir: config.dataDir })
   // DSH 一起来就在后台把工作台起好，打开页面时不用等
   runner.ensure().catch(e => log(e.message))
