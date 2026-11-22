@@ -5762,7 +5762,7 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
     function VideoList({ vids, onNew }) {
       if (!vids.data) return vids.error ? h(ErrorBox, { error: vids.error, onRetry: vids.reload }) : h(Loading)
       const d = vids.data
-      const warn = d.ready ? null : h(Alert, { tone: 'warn' }, d.error)
+      const warn = d.ready ? null : d.missing ? h(VideoSetup, { setup: d.setup, onDone: vids.reload }) : h(Alert, { tone: 'warn' }, d.error)
       if (!d.videos.length) {
         return h(Fragment, null, warn, h(Empty, {
           title: '把文章做成视频',
@@ -5779,6 +5779,33 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
         meta: [v.modeName, v.sec > 5.5 ? vFmtSec(v.sec) : '', v.renders?.length ? `已导出 ${v.renders.length} 次` : ''].filter(Boolean).join(' · '),
         onClick: () => go('video', { id: v.id }),
       }, h('div', { className: cls('faint') }, [v.fromTitle ? `来自《${v.fromTitle.slice(0, 18)}》` : '', ago(v.updated)].filter(Boolean).join(' · '))))))
+    }
+
+    // ---- 视频工具还没装：一键装好（工作台自己下载，不用电脑上有 Node.js），装的时候显示进度
+    function VideoSetup({ setup, onDone }) {
+      const [st, setSt] = useState(setup ?? { running: false })
+      const [starting, setStarting] = useState(false)
+      usePoll(async () => {
+        try {
+          const s = await wb('/api/video-setup')
+          setSt(s)
+          if (!s.running && s.ok) { toast('视频工具装好了'); onDone() }
+        } catch { /* 下一轮再问 */ }
+      }, 2000, !!st.running)
+      const start = async () => {
+        setStarting(true)
+        try { setSt(await wbPost('/api/video-setup', {})) } catch (e) { notify(e.message) } finally { setStarting(false) }
+      }
+      if (st.running) {
+        return h(Card, { title: h(Fragment, null, h(Spin, { sm: true }), ' 正在装视频工具') },
+          h('p', { className: cls('muted') }, `${st.step || '准备中'}${st.registry ? `（线路：${/npmmirror/.test(st.registry) ? '国内镜像' : 'npm 官方'}）` : ''}`),
+          st.log ? h('pre', { className: cls('l-pre') }, st.log) : null,
+          h('p', { className: cls('faint') }, '只装一次，以后都能用。装的时候可以先去做别的。'))
+      }
+      return h(Alert, {
+        tone: st.error ? 'danger' : 'warn',
+        action: h(Btn, { kind: 'primary', sm: true, icon: 'download', busy: starting, onClick: start }, st.error ? '再装一次' : '一键装好'),
+      }, st.error ? `视频工具没装好：${st.error}` : '做视频要先装视频工具（HyperFrames、ffmpeg，一百多 MB），点一下就自动装好，只装一次。')
     }
 
     // ---- 新建视频：形态、横竖屏、剪辑手法、从哪篇文章来
@@ -6041,10 +6068,11 @@ h1{font-size:31px;line-height:1.25;font-weight:800;margin:0 16px 16px;letter-spa
         h('b', null, talk ? '先在左边上传素材' : '告诉 AI 想做成什么样'),
         h('span', { className: cls('muted') }, talk ? '素材处理好以后，让 AI 先出一份剪辑方案；你同意了它再剪。' : 'AI 会读文章、写旁白、做动画，做完你在左边直接看。'),
         quick.map(q => h(Btn, { key: q, sm: true, onClick: () => submit(q) }, q)))
-      const cc = v.cc ?? {}
-      const ccWarn = cc.found === false ? '没找到 Claude Code：到设置里装一下并登录' : cc.loggedIn === false ? 'Claude Code 还没登录：到设置里点「登录」' : ''
+      // 用哪个 AI：本机 Claude Code 登录了就用它，不然用 DSH 里的模型；都没有才提示
+      const engineName = v.engine === 'cc' ? 'Claude Code' : v.engine === 'api' ? 'DSH 里的模型' : ''
+      const ccWarn = v.engine ? '' : '没有能用的 AI：在 DSH「设置 → 模型」里配好模型，或者在设置里装好 Claude Code'
       return h('section', { className: cls('v-chat'), 'aria-label': 'AI 做视频' },
-        h('div', { className: cls('v-chat-head') }, h(Icon, { name: 'spark' }), h('b', null, 'AI 做视频'), h('span', { className: cls('faint', 'grow') }, 'Claude Code')),
+        h('div', { className: cls('v-chat-head') }, h(Icon, { name: 'spark' }), h('b', null, 'AI 做视频'), h('span', { className: cls('faint', 'grow') }, engineName)),
         ccWarn ? h('div', { className: cls('v-chat-warn') }, h(Alert, { tone: 'warn', action: h(Btn, { sm: true, onClick: () => go('settings') }, '去设置') }, ccWarn)) : null,
         h('div', { ref: logRef, className: cls('v-log'), onScroll: e => { const el = e.currentTarget; atEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80 } },
           hello, v.chat.map(msg), live),

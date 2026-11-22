@@ -20,6 +20,7 @@ import * as xpost from './xpost.mjs';
 import * as learn from './learn.mjs';
 import * as edits from './edits.mjs';
 import * as video from './video.mjs';
+import * as videoSetup from './video-setup.mjs';
 import * as tts from './tts.mjs';
 import * as breakdown from './breakdown.mjs';
 import { execFile } from 'node:child_process';
@@ -310,8 +311,10 @@ const server = http.createServer(async (req, res) => {
       }
     }
     if (a === 'video-style' && id && req.method === 'DELETE') return send(res, 200, video.removeStyle(id));
+    // 视频工具一键安装：GET 看进度，POST 开始装
+    if (a === 'video-setup' && !id) return send(res, 200, req.method === 'POST' ? videoSetup.start() : videoSetup.status());
     if (a === 'video') {
-      if (!id && req.method === 'GET') { const rt = video.runtime(); return send(res, 200, { videos: video.list(), aspects: video.ASPECTS, modes: video.MODES, styles: video.allStyles().map(({ id, name, note, custom }) => ({ id, name, note, custom: !!custom })), ready: rt.ok, error: rt.error || '' }); }
+      if (!id && req.method === 'GET') { const rt = video.runtime(); return send(res, 200, { videos: video.list(), aspects: video.ASPECTS, modes: video.MODES, styles: video.allStyles().map(({ id, name, note, custom }) => ({ id, name, note, custom: !!custom })), ready: rt.ok, missing: !!rt.missing, error: rt.error || '', setup: videoSetup.status(), engine: video.engine() }); }
       if (!id && req.method === 'POST') return send(res, 200, video.create(await body(req)));
       if (id && !action && req.method === 'GET') return send(res, 200, video.get(id));
       if (id && !action && req.method === 'PATCH') return send(res, 200, video.patch(id, await body(req)));

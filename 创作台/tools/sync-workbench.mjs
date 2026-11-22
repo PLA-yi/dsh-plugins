@@ -19,16 +19,17 @@ const ESBUILD = process.env.ESBUILD || path.join(PLUGIN, '..', 'deepseek-harness
 if (!fs.existsSync(path.join(SRC, 'server.mjs'))) throw new Error(`没找到工作台：${SRC}`)
 if (!fs.existsSync(ESBUILD)) throw new Error(`没找到 esbuild：${ESBUILD}（用环境变量 ESBUILD 指定）`)
 
-// 1. 取代码。保留上次跑出来的 data/ 和 config.json（那是用户的数据）
-const keep = ['data', 'config.json'].filter(n => fs.existsSync(path.join(OUT, n)))
+// 1. 取代码。保留用户的数据、设置和已经装好的视频工具
+const keep = ['data', 'config.json', 'video/runtime/node_modules', 'video/runtime/py', 'video/runtime/bin'].filter(n => fs.existsSync(path.join(OUT, n)))
 const stash = path.join(PLUGIN, '.workbench-keep')
+const stashed = n => path.join(stash, n.replaceAll('/', '__'))
 fs.rmSync(stash, { recursive: true, force: true })
-if (keep.length) { fs.mkdirSync(stash); for (const n of keep) fs.renameSync(path.join(OUT, n), path.join(stash, n)) }
+if (keep.length) { fs.mkdirSync(stash); for (const n of keep) fs.renameSync(path.join(OUT, n), stashed(n)) }
 fs.rmSync(OUT, { recursive: true, force: true })
 fs.mkdirSync(OUT)
 const tar = execFileSync('git', ['-C', SRC, 'archive', REF, '--', '.', ':!dsh-plugins', ':!package-lock.json'], { maxBuffer: 1 << 30 })
 execFileSync('tar', ['-x', '-C', OUT], { input: tar })
-for (const n of keep) fs.renameSync(path.join(stash, n), path.join(OUT, n))
+for (const n of keep) { fs.mkdirSync(path.dirname(path.join(OUT, n)), { recursive: true }); fs.renameSync(stashed(n), path.join(OUT, n)) }
 fs.rmSync(stash, { recursive: true, force: true })
 
 // 2. 打依赖
@@ -58,7 +59,7 @@ fs.writeFileSync(ai, code.replace("from '@anthropic-ai/sdk'", "from './vendor/an
 
 // 工作台自己的 .gitignore 忽略所有 node_modules；这里要让打好的 templates/runtime/node_modules 进仓库
 const gi = path.join(OUT, '.gitignore')
-fs.writeFileSync(gi, fs.readFileSync(gi, 'utf8').replace(/^node_modules$/m, '/node_modules\ntemplates/sample/node_modules\nconfig.json'))
+fs.writeFileSync(gi, fs.readFileSync(gi, 'utf8').replace(/^node_modules$/m, '/node_modules\ntemplates/sample/node_modules\nvideo/runtime/node_modules\nconfig.json'))
 
 const rev = execFileSync('git', ['-C', SRC, 'rev-parse', '--short', REF]).toString().trim()
 fs.writeFileSync(path.join(OUT, 'VERSION'), `小易工作台 ${rev}（由 tools/sync-workbench.mjs 打进来，别直接改这里的代码）\n`)

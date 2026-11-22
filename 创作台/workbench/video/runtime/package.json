@@ -8,6 +8,6 @@
     "hyperframes": "0.9.37"
   },
   "scripts": {
-    "postinstall": "(python3.12 -m venv py || python3 -m venv py) && py/bin/pip install -q cmake yt-dlp || echo \"cmake / yt-dlp 没装上：口播转字幕和按链接下载视频会用不了，其他不受影响\""
+    "postinstall": "node setup-py.mjs"
   }
 }

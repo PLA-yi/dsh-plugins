@@ -11,6 +11,7 @@ import * as core from './core.mjs';
 import * as ai from './ai.mjs';
 import * as grab from './grab.mjs';
 import * as video from './video.mjs';
+import * as vagent from './vagent.mjs';
 
 const RT = path.join(core.APP_DIR, 'video', 'runtime');
 const META = '.breakdown.json', PREFIX = '拉片-';
@@ -241,10 +242,25 @@ const BRIEF = m => `# 拉片
 `;
 async function analyze(dir) {
   const m = readMeta(dir);
-  const bin = ai.ccBin(); if (!bin) throw new Error('没找到 Claude Code：到「AI 设置」里装一下并登录');
-  if (!ai.ccStatus().loggedIn) throw new Error('Claude Code 还没登录：到「AI 设置」里点「登录」');
+  const eng = video.engine(); if (!eng) throw new Error(ai.ccBin() ? 'Claude Code 还没登录：到「AI 设置」里点「登录」' : '没有能用的 AI：装好 Claude Code 并登录，或者在 DeepSeek Harness 里配好模型');
   fs.writeFileSync(path.join(dir, 'CLAUDE.md'), BRIEF(m));
   fs.rmSync(path.join(dir, 'analysis.json'), { force: true });
+  if (eng === 'api') {
+    // 没有 Claude Code：用模型接口，只能读这个文件夹、只能写 analysis.json
+    const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 20 * 60000);
+    try {
+      await vagent.runAgent({
+        dir, signal: ctrl.signal, commands: false, maxRounds: 120, canWrite: rel => rel === 'analysis.json',
+        system: '你在「小易工作台」里做拉片。严格按下面的要求做，只读这个文件夹里的材料，只写 analysis.json。工具：read_file（读文件、看截帧图片）、list_files、write_file。下面说的「用 Read 看」就是用 read_file 看。\n\n' + BRIEF(m),
+        prompt: '按要求给这条视频拉片：先读 shots.json 和 lines.txt，再把 frames/ 里的截帧一张张看过，然后写 analysis.json。写完回一句「好了」。',
+        step: () => {}, onText: () => {},
+      });
+    } finally { clearTimeout(timer); }
+    const an = readJson(path.join(dir, 'analysis.json'), null);
+    if (!an || !an.summary) throw new Error('AI 没写出分析，点「重新分析」再试一次');
+    return;
+  }
+  const bin = ai.ccBin();
   const args = ['-p', '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--no-session-persistence', '--permission-mode', 'acceptEdits',
     '--append-system-prompt', '你在「小易工作台」里做拉片。严格按这个文件夹里 CLAUDE.md 的要求做，只读这个文件夹里的材料，只写 analysis.json。', '--allowedTools', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash(ls:*)', 'Bash(cat:*)'];
   await new Promise((ok, no) => {

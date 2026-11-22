@@ -1,6 +1,7 @@
 # 依赖（含 templates/sample 里指向 runtime 的软链接）
 /node_modules
 templates/sample/node_modules
+video/runtime/node_modules
 config.json
 
 # 本机数据：登录令牌、AI 设置、X 账号、记忆、素材、浏览器登录态

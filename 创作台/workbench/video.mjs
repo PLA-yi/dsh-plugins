@@ -11,6 +11,7 @@ import { spawn, execFile } from 'node:child_process';
 import * as core from './core.mjs';
 import * as ai from './ai.mjs';
 import * as tts from './tts.mjs';
+import * as vagent from './vagent.mjs';
 
 const RT = path.join(core.APP_DIR, 'video', 'runtime');
 const RT_BIN = path.join(RT, 'bin');
@@ -56,7 +57,7 @@ const root = () => core.config().roots[0];
 // ffmpeg / ffprobe / cmake 链到 video/runtime/bin，跑命令时把这个目录放到 PATH 最前
 export function runtime() {
   const hf = path.join(RT, 'node_modules', '.bin', 'hyperframes');
-  if (!exists(hf)) return { ok: false, error: '视频要用的依赖还没装。在工作台文件夹里运行一次：npm install --prefix video/runtime' };
+  if (!exists(hf)) return { ok: false, missing: true, error: '视频要用的工具还没装（HyperFrames、ffmpeg），点「一键装好」就行，装一次以后都能用' };
   fs.mkdirSync(RT_BIN, { recursive: true });
   const link = (name, target) => { const f = path.join(RT_BIN, name); if (target && exists(target) && !exists(f)) { try { fs.symlinkSync(target, f); } catch {} } };
   link('ffmpeg', path.join(RT, 'node_modules', 'ffmpeg-static', 'ffmpeg'));
@@ -109,7 +110,7 @@ export function get(id) {
   const clips = readClips(dir).map(c => ({ id: c.id, name: c.name, kind: c.kind, file: c.file, sec: c.sec || 0, width: c.width, height: c.height, text: c.text || '', hasTranscript: !!c.transcript, silence: +(c.silences || []).reduce((a, x) => a + (x[1] - x[0]), 0).toFixed(1) }));
   return { ...summary(dir), dir, chat: m.chat || [], scenes, voiceChars: scenes.reduce((n, s) => n + [...s.text].length, 0), voiced: scenes.filter(s => s.audio && exists(path.join(dir, s.audio))).length,
     clips, plan: readPlan(dir), styles: m.styles || [], styleList: allStyles().map(({ id, name, note, custom, from }) => ({ id, name, note, custom: !!custom, from: from || '' })), rev: mtime(path.join(dir, 'index.html')),
-    run: runState(id), render: renderState(id), voice: voiceState(id), prep: prepState(id), tts: tts.publicConfig(), cc: ai.ccStatus() };
+    run: runState(id), render: renderState(id), voice: voiceState(id), prep: prepState(id), tts: tts.publicConfig(), cc: ai.ccStatus(), engine: engine() };
 }
 
 /* ---------- 新建 ---------- */
@@ -313,14 +314,29 @@ function stepOf(name, input = {}) {
 }
 const TOOLS = ['Read', 'Write', 'Edit', 'MultiEdit', 'Glob', 'Grep', 'Skill', 'TodoWrite', 'Bash(hyperframes:*)', 'Bash(ls:*)', 'Bash(cat:*)', 'Bash(mkdir:*)', 'Bash(cp:*)', 'Bash(ffprobe:*)'];
 const SYSTEM = '你在「小易工作台」的视频板块里工作，替不懂代码的作者把文章做成视频。严格按这个文件夹里 CLAUDE.md 的约定做。只在当前文件夹里读写文件。用中文回复，简短，不贴代码。';
+// 用模型接口干活时（没有 Claude Code）：说明直接放进系统提示，工具名和 Claude Code 的对应一下
+const SYSTEM_API = `${SYSTEM}
+
+你用的工具：read_file（读文件、看图片）、write_file、edit_file、copy_file、list_files，跑命令用 run（只能跑 hyperframes 的检查、截帧这些和 ffprobe）。下面说明里说的「用 Read 看」就是用 read_file 看；「/hyperframes 技能」是文件 .claude/skills/hyperframes/SKILL.md，动手前先用 read_file 读它，命令行用法在 .claude/skills/hyperframes-cli/SKILL.md。
+做完一件事就停下来，用几句话告诉作者结果，不要反复确认已经做好的东西。
+
+下面是这个文件夹里 CLAUDE.md 的内容：
+
+`;
+/** 视频的 AI 用哪个：本机 Claude Code 登录了就用它（作者自己的订阅）；不然用模型接口（DSH 里的模型、Claude API）。都没有返回 null。 */
+export function engine() {
+  if (process.env.WB_VIDEO_AI !== 'api' && ai.ccBin() && ai.ccStatus().loggedIn) return 'cc';
+  return vagent.model() ? 'api' : null;
+}
+const noEngine = () => new Error(ai.ccBin() ? 'Claude Code 还没登录：到「AI 设置」里点「登录」' : '没有能用的 AI：装好 Claude Code 并登录，或者在 DeepSeek Harness 里配好模型');
 
 export function run(id, message, { auto = false } = {}) {
   const dir = dirOf(id);
   message = String(message || '').trim(); if (!message) throw new Error('说说想做成什么样');
   if (RUNS.get(id)?.running) throw Object.assign(new Error('AI 还在做上一件事，等它做完或者先点停止'), { status: 409 });
   const rt = runtime(); if (!rt.ok) throw new Error(rt.error);
-  const bin = ai.ccBin(); if (!bin) throw new Error('没找到 Claude Code：到「AI 设置」里装一下并登录');
-  if (!ai.ccStatus().loggedIn) throw new Error('Claude Code 还没登录：到「AI 设置」里点「登录」');
+  const eng = engine(); if (!eng) throw noEngine();
+  const bin = eng === 'cc' ? ai.ccBin() : null;
   const m = patchMeta(dir, m => { m.chat = [...(m.chat || []), { role: 'me', text: message, t: new Date().toISOString(), ...(auto ? { auto: true } : {}) }].slice(-200); });
   syncSource(dir, m);
   fs.writeFileSync(path.join(dir, 'CLAUDE.md'), guide(m));
@@ -363,10 +379,24 @@ export function run(id, message, { auto = false } = {}) {
     });
     makePoster(id).catch(() => {});
   };
+  if (eng === 'api') {
+    // 没有会话可以接着聊：把最近的对话带上，文件夹里的文件就是之前做到的样子
+    const before = (m.chat || []).slice(-13, -1).filter(x => x.text).map(x => `${x.role === 'me' ? '作者' : '你'}：${x.text}`).join('\n\n');
+    const prompt = `${before ? `之前的对话（文件夹里的文件就是之前做到的样子）：\n\n${before}\n\n---\n\n` : ''}作者这次说：${message}`;
+    const ctrl = st.ctrl = new AbortController();
+    vagent.runAgent({
+      dir, system: SYSTEM_API + guide(m), prompt, signal: ctrl.signal,
+      canWrite: rel => !/^(\.|source\/|transcripts\/)/.test(rel) && !['clips.json', 'CLAUDE.md', META].includes(rel),
+      exec: (cmd, args) => sh(cmd, args, { cwd: dir, timeout: 180000 }),
+      step: (icon, text) => { if (st.steps.at(-1)?.[1] !== text) st.steps.push([icon, text]); st.text = ''; },
+      onText: t => { st.text = t; },
+    }).then(reply => finish('', st.stopped ? '（已停止）' : reply || st.text), e => finish(st.stopped ? '' : e.message, st.stopped ? '（已停止）' : ''));
+    return { ok: true, engine: eng };
+  }
   start(m.session || null);
-  return { ok: true };
+  return { ok: true, engine: eng };
 }
-export function stop(id) { const r = RUNS.get(id); if (r?.running && r.ch) { r.stopped = true; r.ch.kill(); } return { ok: true }; }
+export function stop(id) { const r = RUNS.get(id); if (r?.running) { r.stopped = true; r.ch?.kill(); r.ctrl?.abort(); } return { ok: true }; }
 
 // 列表里的缩略图：从画面三分之一处截一帧
 const postering = new Set();

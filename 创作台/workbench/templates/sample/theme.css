@@ -1,84 +1,90 @@
-/* 蓝莹：明亮的蓝色细线，轻科技感
-   来源：mdnice/markdown-nice v1.4.0（GPL-3.0），由 tools/templates.mjs 转成工作台模板：去掉了公众号不支持的写法，补上了刊头、导语、目录、章节编号、图注等元素的样式。
-   构建时全部转成行内样式；主色 #5c9dff，正文 #666666。 */
-.article{color:#666666;font-size:16px;line-height:1.8;letter-spacing:.5px;text-align:left;word-break:break-word}
-.article .mast{display:flex;justify-content:space-between;align-items:center;margin:0 0 18px;padding:0 0 8px;border-bottom:1px solid #cee2ff}
-.article .mast-l{margin:0;font-size:13px;font-weight:700;color:#5c9dff;line-height:1.3;text-indent:0;letter-spacing:1px}
-.article .mast-r{margin:0;font-size:12px;color:#8c8c8c;line-height:1.3;text-align:right;text-indent:0}
-.article .kicker{display:inline-block;margin:0 0 10px;padding:2px 10px;border-radius:999px;background:#f2f7ff;color:#5c9dff;font-size:12px;font-weight:600;letter-spacing:1px;text-indent:0}
-.article .h1b{color:#5c9dff}
-.article .deck{margin:0 0 24px;padding:12px 16px;background:#f2f7ff;border-left:3px solid #5c9dff;color:#7d7d7d;font-size:15px;line-height:1.8;text-indent:0;border-radius:0 6px 6px 0}
-.article .dc{font-size:inherit;font-weight:inherit;color:inherit}
-.article .toc{margin:24px 0 10px;padding:14px 16px 6px;background:#f2f7ff;border-radius:8px}
-.article .toc-t{margin:0 0 8px;font-size:13px;font-weight:700;color:#5c9dff;text-indent:0;letter-spacing:1px}
-.article .toc-i{margin:0 0 8px;font-size:14.5px;line-height:1.6;color:#7d7d7d;text-indent:0}
-.article .toc-i b{color:#5c9dff;margin-right:6px;font-weight:700}
-.article h2 .h2row{display:block;margin-bottom:6px}
-.article h2 .no{display:inline-block;padding:1px 8px;border-radius:3px;background:#5c9dff;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:1px;line-height:1.6}
-.article h2 .en{display:none}
-.article h2 .h2q{display:block;font-size:15px;font-weight:500;color:#8c8c8c;margin-top:4px;letter-spacing:0}
-.article .qm{display:none}
-.article .tbl{margin:22px 0 8px;overflow-x:auto}
-.article .pic,.article .dgm,.article .pcd{margin:22px 0 0}
-.article .cov{margin:36px 0 18px}
-.article .cov0{margin:0 0 18px}
-.article .pic img,.article .cov img,.article .dgm img,.article .pcd img{display:block;width:100%;max-width:100%;margin:0;border-radius:6px}
-.article .cap{margin:8px 0 26px;font-size:12px;line-height:1.7;color:#8c8c8c;text-align:center;text-indent:0;letter-spacing:0}
-.article .cap b{color:#5c9dff;margin-right:6px;font-weight:600}
-.article .orn{text-align:center;color:#5c9dff;letter-spacing:10px;font-size:14px;margin:30px 0;text-indent:0}
-.article .sources{margin-top:36px;padding:12px 14px 4px;background:#f6f6f6;border-radius:6px;font-size:11.5px;line-height:1.8;color:#8c8c8c}
-.article .sources p{margin:0 0 6px;font-size:11.5px;line-height:1.8;color:#8c8c8c;text-indent:0;letter-spacing:0}
-.article .sources b{color:#555555;font-size:12px}
-.article .sources a{color:#8c8c8c}
-.article .sign{margin:28px 0 0;text-align:center;font-size:12px;color:#8c8c8c;text-indent:0}
-.article .sign b{color:#5c9dff;font-size:16px}
-/* ---- 主题 ---- */
-.article{font-size:16px;color:black;padding:10px;line-height:1.6;word-spacing:0px;letter-spacing:0px;word-break:break-word;word-wrap:break-word;text-align:left;font-family:Optima-Regular, Optima, PingFangSC-light, PingFangTC-light, 'PingFang SC', Cambria, Cochin, Georgia, Times, 'Times New Roman', serif}
-.article p{font-size:16px;padding-top:8px;padding-bottom:8px;margin:0;line-height:26px;color:black}
-.article h1{margin-top:40px;margin-bottom:20px;font-weight:bold;color:black}
-.article h1{font-size:28px}
-.article h2{font-size:24px}
-.article h3{font-size:20px}
-.article h4{font-size:18px}
-.article h5{font-size:16px}
-.article h6{font-size:16px}
-.article ul{margin-top:8px;margin-bottom:8px;padding-left:25px;color:black}
-.article ul{list-style-type:disc}
-.article ul ul{list-style-type:square}
-.article ol{list-style-type:decimal}
-.article li{margin-top:5px;margin-bottom:5px;line-height:26px;text-align:left;color:rgb(1,1,1);font-weight:500}
-.article blockquote{display:block;font-size:0.9em;overflow:auto;overflow-scrolling:touch;border-left:3px solid rgba(0, 0, 0, 0.4);background:rgba(0, 0, 0, 0.05);color:#6a737d;padding-top:10px;padding-bottom:10px;padding-left:20px;padding-right:10px;margin-bottom:20px;margin-top:20px}
-.article blockquote p{margin:0px;color:black;line-height:26px}
-.article a{text-decoration:none;color:#1e6bb8;word-wrap:break-word;font-weight:bold;border-bottom:1px solid #1e6bb8}
-.article strong{font-weight:bold;color:black}
-.article em{font-style:italic;color:black}
-.article strong em{font-weight:bold;color:black}
-.article del{font-style:italic;color:black}
-.article hr{height:1px;margin:0;margin-top:10px;margin-bottom:10px;border:none;border-top:1px solid black}
-.article img{display:block;margin:0 auto;width:100%}
-.article .cap{margin-top:5px;text-align:center;color:#888;font-size:14px}
-.article table{display:table;text-align:left}
-.article tbody{border:0}
-.article table tr{border:0;border-top:1px solid #ccc;background-color:white}
-.article table tr th{font-size:16px;border:1px solid #ccc;padding:5px 10px;text-align:left}
-.article table tr th{font-weight:bold;background-color:#f0f0f0}
-.article{font-family:"PingFang SC", "Microsoft YaHei", sans-serif;word-break:break-all}
-.article h1{font-size:1.7em;font-weight:normal;border-bottom:2px solid hsl(216, 100%, 68%)}
-.article h2{font-weight:normal;color:#333;font-size:1.4em;border-bottom:1px solid hsl(216, 100%, 68%)}
-.article h2 .h2t{border-bottom:1px solid hsl(216, 100%, 68%)}
-.article h3{font-weight:normal;color:#333;font-size:1.2em}
-.article h4{font-weight:normal;font-size:1em;width:80%;border:1px solid hsl(216, 100%, 68%);border-top:4px solid hsl(216, 100%, 68%);padding:10px;margin:30px auto;color:#333}
-.article h5{font-weight:normal;font-size:1.3em;text-align:center;background:hsl(216, 100%, 68%);border:3px double #fff;width:80%;padding:10px;margin:30px auto;color:#fff}
-.article h6{font-size:1.5em;font-weight:normal;color:hsl(216, 100%, 68%);border-bottom:1px solid hsl(216, 100%, 68%)}
-.article em{font-style:normal;font-weight:normal;color:white;background:hsl(244, 100%, 75%);padding:2px 4px;margin:0px 2px}
-.article ol{padding-left:2em}
-.article hr{width:90%;margin:1.5em auto;border-top:2px dashed hsl(216, 100%, 68%)}
-.article table{margin:1.5em auto;width:auto}
-.article img{width:90%;margin:0 auto;box-shadow:#CCC 0 10px 15px}
-.article blockquote{background:#f9f9f9;border-left-color:hsl(216, 100%, 68%)}
-.article blockquote p{color:#999;padding:3px 0}
-.article a{color:hsl(187, 100%, 45%);font-weight:normal;border-bottom-color:hsl(187, 100%, 45%)}
-.article strong{color:hsl(216, 80%, 44%)}
-.article s{color:#999}
-.article p{color:#666}
-.article table tr th{color:#333;font-weight:normal}
+/* 黑白杂志风（照 ParaDaily 那种外刊编译稿）：纯黑白灰，不用彩色点缀。
+   标题压在黑底块上，导语右对齐斜体，正文两端对齐、行距放宽、字距略开；加粗只加黑不加底色；
+   引语左侧一道粗黑线；章节号是黑色圆块，标题靠右；图片直角无框，图注居中小灰字；文末署名居中浅灰。
+   构建时全部转成行内样式，class 会被删掉；不用伪元素、不用 position、不用网络字体（公众号会过滤）。
+   主色：正文 #3f3f3f，标题/加粗 #111111，辅助灰 #8a8a8a，浅灰 #b5b5b5，细线 #e5e5e5，链接 #576b95 */
+
+.article{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;color:#3f3f3f;font-size:16px;line-height:2;letter-spacing:1px;text-align:justify;word-break:break-word}
+
+/* 刊头 */
+.mast{display:flex;justify-content:space-between;align-items:center;margin:0 0 18px;padding:0 0 10px;border-bottom:1px solid #e5e5e5}
+.mast-l{margin:0;font-size:13px;font-weight:700;color:#111111;line-height:1.2}
+.mast-r{margin:0;font-size:12px;color:#8a8a8a;line-height:1.2;text-align:right}
+
+.kicker{display:inline-block;margin:0 0 12px;padding:4px 12px;background:#ffffff;border:1px solid #111111;font-size:13px;font-weight:600;color:#111111;letter-spacing:.5px}
+
+/* 大标题：黑底白字的大块，像封面图上压的标题 */
+.article h1{font-size:26px;line-height:1.4;color:#ffffff;background:#1a1a1a;font-weight:900;letter-spacing:.5px;margin:0 0 28px;padding:40px 22px 28px;text-align:left}
+.h1b{color:#ffffff}
+
+/* 导语：右对齐斜体，上面一道细线 */
+.deck{font-size:15px;line-height:1.9;color:#555555;font-style:italic;margin:0 0 36px;padding:16px 0 0;border-top:1px solid #e5e5e5;text-align:right;letter-spacing:.5px}
+.lede{font-size:16px;line-height:2;color:#3f3f3f;margin:0 0 24px}
+.dc{font-size:16px;font-weight:inherit;color:#3f3f3f}
+
+/* 本篇内容：上下黑线，不加底色 */
+.toc{margin:32px 0 12px;padding:14px 0 6px;border-top:2px solid #111111;border-bottom:1px solid #e5e5e5}
+.toc-t{margin:0 0 10px;font-size:13px;font-weight:700;color:#111111;letter-spacing:2px}
+.toc-i{margin:0 0 8px;font-size:14.5px;line-height:1.7;color:#3f3f3f;text-align:left}
+.toc-i b{display:inline-block;width:22px;height:22px;border-radius:50%;background:#111111;color:#ffffff;font-size:11px;font-weight:700;line-height:22px;text-align:center;letter-spacing:0;margin-right:10px}
+
+/* 章节：左边黑色圆块编号，右边大号粗标题靠右 */
+/* 每章一样的三行结构：黑圆编号 / 完整标题 / 英文小标，全部右对齐，底下一道细线收住 */
+.article h2{display:block;margin:64px 0 28px;padding:0 0 14px;border-bottom:1px solid #111111;font-size:20px;line-height:1.5;color:#111111;font-weight:900;letter-spacing:1px;text-align:right}
+.h2row{display:block;margin:0 0 12px;text-align:left}
+.no{display:inline-block;width:40px;height:40px;border-radius:50%;background:#111111;color:#ffffff;font-size:14px;font-weight:700;line-height:40px;text-align:center;letter-spacing:0}
+.h2t{display:block;text-align:right}
+.en{display:block;margin-top:6px;font-size:11px;line-height:1.4;font-weight:600;color:#8a8a8a;letter-spacing:4px;text-align:right}
+.h2q{display:none}
+.article h3{margin:32px 0 12px;font-size:17px;color:#111111;font-weight:800;text-align:left}
+p{margin:0 0 24px}
+/* 加粗：只加黑 */
+.article strong{color:#111111;font-weight:700}
+.article a{color:#576b95;text-decoration:none}
+.article ul,.article ol{margin:0 0 24px;padding-left:20px}
+.article li{margin:0 0 8px}
+
+/* 引语：左侧粗黑线，不加底色 */
+.article blockquote{margin:28px 0 24px;padding:2px 0 2px 18px;border-left:5px solid #111111;background:#ffffff;text-align:left}
+.qm{display:none}
+.article blockquote p{font-size:16px;line-height:1.9;font-weight:400;color:#3f3f3f;margin:0;text-align:justify}
+
+/* 表格：顶部粗黑线，表头黑字，行间细灰线 */
+.tbl{margin:28px 0 8px;overflow-x:auto;border-top:2px solid #111111;border-bottom:1px solid #111111}
+.article table{width:100%;border-collapse:collapse;font-size:13.5px;line-height:1.7;letter-spacing:.3px;text-align:left}
+.article th{text-align:left;font-size:12.5px;font-weight:700;color:#111111;background:#ffffff;padding:10px 8px;border-bottom:1px solid #111111}
+.article td{vertical-align:top;color:#3f3f3f;padding:10px 8px;border-top:1px solid #e5e5e5}
+.article td:first-child{font-weight:700;color:#111111;white-space:nowrap;padding-right:12px}
+
+/* 截图：直角，不加框 */
+.pic{margin:28px 0 0}
+.pic img{display:block;width:100%;max-width:100%;margin:0}
+.cov{margin:48px 0 20px}
+.cov0{margin:0 0 20px}
+.pcd{margin:28px 0 0}
+.cov img{display:block;width:100%;max-width:100%;margin:0}
+.dgm{margin:28px 0 0}
+.dgm img{display:block;width:100%;max-width:100%;margin:0}
+/* 图注：居中小灰字 */
+.cap{font-size:13px;line-height:1.7;color:#8a8a8a;margin:10px 0 32px;text-align:center;letter-spacing:.5px}
+.cap b{font-weight:400;color:#8a8a8a;margin-right:6px}
+.cap a{color:#8a8a8a}
+
+.orn{text-align:center;color:#b5b5b5;letter-spacing:10px;font-size:14px;line-height:1;margin:40px 0}
+
+/* 文末 */
+.sources{margin-top:48px;padding:14px 0 6px;border-top:1px solid #e5e5e5;font-size:12px;line-height:1.85;color:#8a8a8a;text-align:left;letter-spacing:.3px}
+.sources p{margin:0 0 8px}
+.sources b{font-size:12px;color:#3f3f3f}
+.sources a{color:#8a8a8a}
+/* 参考资料：分组小标题 + 一条一行（编号 / 名称 / 用途 / 网址） */
+.sources .src-t{margin:0 0 4px;font-size:13px;font-weight:700;color:#111111;letter-spacing:2px}
+.sources .src-h{margin:18px 0 8px;padding:0 0 4px;border-bottom:1px solid #e5e5e5;font-size:12px;font-weight:700;color:#3f3f3f;letter-spacing:1px}
+.sources .src-i{margin:0 0 12px;line-height:1.7}
+.sources .src-n{display:inline-block;width:26px;font-weight:700;color:#3f3f3f;letter-spacing:0}
+.sources .src-i a{color:#3f3f3f;font-size:13px;font-weight:600}
+.sources .src-d{display:block;padding-left:26px;color:#8a8a8a}
+.sources .src-u{display:block;padding-left:26px;color:#b5b5b5;font-size:11px;line-height:1.6;letter-spacing:0;word-break:break-all}
+.sources .src-note{margin:0 0 6px;color:#8a8a8a}
+.sign{margin:56px 0 0;padding:0;text-align:center;font-size:12px;line-height:2.4;color:#b5b5b5;letter-spacing:1px}
+.sign b{color:#9a9a9a;font-size:15px;font-weight:400}
